@@ -5365,14 +5365,49 @@
       }
 
       resetWhiteboardView() {
-        this.whiteboardPanX = 0;
-        this.whiteboardPanY = 0;
+        if (this.storyboardCards.length === 0) {
+          this.whiteboardPanX = 0;
+          this.whiteboardPanY = 0;
+        } else {
+          // 1. Trouver le point central de toutes les cartes existantes
+          let minX = Infinity, maxX = -Infinity, minY = Infinity, maxY = -Infinity;
+          
+          this.storyboardCards.forEach(c => {
+            // Sécurité anti-bug : si une carte a été perdue dans le "néant" (NaN), on la fixe
+            if (isNaN(c.x) || c.x === null) c.x = 1500;
+            if (isNaN(c.y) || c.y === null) c.y = 1500;
+            
+            if (c.x < minX) minX = c.x;
+            if (c.x > maxX) maxX = c.x;
+            if (c.y < minY) minY = c.y;
+            if (c.y > maxY) maxY = c.y;
+          });
+
+          // Centre de la boîte englobante des cartes
+          const centerX = (minX + maxX) / 2;
+          const centerY = (minY + maxY) / 2;
+
+          // Dimensions de l'écran
+          const vp = document.getElementById("storyboard-viewport");
+          const vpWidth = vp ? vp.clientWidth : window.innerWidth / 2;
+          const vpHeight = vp ? vp.clientHeight : window.innerHeight / 2;
+
+          // 2. Calculer le décalage pour mettre le groupe de cartes pile au centre de l'écran
+          // Le "1500" compense le top/left de la div .whiteboard-grid
+          // Le "145" et "100" compensent la moitié de la taille d'une carte
+          this.whiteboardPanX = (vpWidth / 2) + 1500 - centerX - 145;
+          this.whiteboardPanY = (vpHeight / 2) + 1500 - centerY - 100;
+        }
+
         this.whiteboardZoom = 1.0;
         this.applyWhiteboardTransform();
-        DB.set("wb_pan_x", 0);
-        DB.set("wb_pan_y", 0);
+        
+        // Sauvegarder le nouvel état dans le cache local
+        DB.set("wb_pan_x", this.whiteboardPanX);
+        DB.set("wb_pan_y", this.whiteboardPanY);
         DB.set("wb_zoom", 1.0);
-        this.logTerminal("[SYSTEM] Chalkboard viewport reset and centered.");
+        DB.set("storyboard_cards_v1", this.storyboardCards); 
+        this.logTerminal("[SYSTEM] Chalkboard viewport refocused automatically on lost cards.");
       }
 
       applyWhiteboardTransform() {
