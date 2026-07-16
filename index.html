@@ -1820,6 +1820,34 @@
                 </div>
               </div>
             </div>
+
+            <!-- Cinematic Skills Studio -->
+            <div style="border-top:1px solid var(--border-color); padding-top:16px; margin-top:10px;">
+              <span class="field-label" style="display:block; margin-bottom:6px;">⚡ CINEMATIC SKILLS STUDIO</span>
+              <p class="edu-text" style="font-size:11px; margin-bottom:12px;">Add custom creative skills/instructions to enhance agent consults or injection prompts.</p>
+              
+              <div class="custom-input-group" style="margin-bottom:10px;">
+                <span class="field-label">Skill Title</span>
+                <input type="text" id="new-skill-title" class="input-text" style="background-color: var(--bg-deep);" placeholder="e.g., Ultra-Macro Lighting, French Wave">
+              </div>
+
+              <div class="custom-input-group" style="margin-bottom:12px;">
+                <span class="field-label">Directive Prompt / Instructions</span>
+                <textarea id="new-skill-prompt" class="input-text" style="background-color: var(--bg-deep); height: 60px; font-family:inherit; font-size:11px; resize: none; color: var(--text-main);" placeholder="e.g., Restrict camera lenses strictly to 18mm with warm sepia grading..."></textarea>
+              </div>
+
+              <button class="btn-action" style="width:100%; border-color: var(--accent); color: var(--accent);" onclick="app.addCustomSkill()">
+                ⚡ Add New Skill
+              </button>
+
+              <div style="margin-top:16px;">
+                <span class="field-label" style="display:block; margin-bottom:10px;">Active Cinematic Skills</span>
+                <div id="active-skills-list" style="display:flex; flex-direction:column; gap:8px; max-height: 200px; overflow-y: auto;">
+                  <!-- Dynamically populated skills -->
+                </div>
+              </div>
+            </div>
+
           </div>
         </div>
 
@@ -1986,11 +2014,98 @@
                 </div>
 
                 <div class="custom-input-group">
+                  <span class="field-label">Kie AI (Kling) API Key</span>
+                  <div style="display:flex; gap:10px;">
+                    <input type="password" id="key-kie" class="input-text" placeholder="Kling API key..." oninput="app.saveSettings()">
+                    <button class="btn-action" onclick="app.testAPI('kie')">Test API</button>
+                  </div>
+                </div>
+
+                <div class="custom-input-group">
+                  <span class="field-label">OpenRouter API Key</span>
+                  <div style="display:flex; gap:10px;">
+                    <input type="password" id="key-openrouter" class="input-text" placeholder="sk-or-..." oninput="app.saveSettings()">
+                    <button class="btn-action" onclick="app.testAPI('openrouter')">Test API</button>
+                  </div>
+                </div>
+
+                <div class="custom-input-group">
                   <span class="field-label">n8n Webhook URL</span>
                   <div style="display:flex; gap:10px;">
                     <input type="text" id="key-n8n" class="input-text" placeholder="https://your-n8n-instance.com/g/..." oninput="app.saveSettings()">
                     <button class="btn-action" onclick="app.testAPI('n8n')">Test Webhook</button>
                   </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- AI Engine Model Preferences Section -->
+            <div style="border-top: 1px solid var(--border-color); padding-top: 24px; margin-top: 24px;">
+              <h3 style="font-size: 16px; margin-bottom: 8px; color: var(--accent);">AI Engine Model Selection</h3>
+              <p class="question-desc" style="margin-bottom: 20px; font-size: 12px;">Choose which specific engine models to use for your generations, or clear them to use defaults.</p>
+              
+              <div style="display: flex; flex-direction: column; gap:16px;">
+                <div class="custom-input-group">
+                  <span class="field-label">Preferred OpenAI Model</span>
+                  <div style="display:flex; gap:10px; align-items:center;">
+                    <select id="model-openai" class="input-text" style="background-color: var(--bg-deep); flex-grow:1;" onchange="app.saveSettings()">
+                      <option value="">-- None Selected (Default) --</option>
+                      <option value="gpt-4o">gpt-4o (High intelligence multimodal)</option>
+                      <option value="gpt-4o-mini">gpt-4o-mini (Fast and lightweight)</option>
+                      <option value="o1-mini">o1-mini (Advanced reasoning logic)</option>
+                      <option value="o1-preview">o1-preview (Full reasoning preview)</option>
+                      <option value="dall-e-3">dall-e-3 (Visual prompt output)</option>
+                    </select>
+                    <button class="btn-action" style="padding: 4px 10px; font-size: 11px;" onclick="document.getElementById('model-openai').value=''; app.saveSettings(); app.logTerminal('[SYSTEM] Cleared preferred OpenAI model.');">Clear</button>
+                  </div>
+                </div>
+
+                <div class="custom-input-group">
+                  <span class="field-label">Preferred Mistral Model</span>
+                  <div style="display:flex; gap:10px; align-items:center;">
+                    <select id="model-mistral" class="input-text" style="background-color: var(--bg-deep); flex-grow:1;" onchange="app.saveSettings()">
+                      <option value="">-- None Selected (Default) --</option>
+                      <option value="mistral-large-latest">mistral-large-latest (Top-tier reasoning)</option>
+                      <option value="mistral-medium-latest">mistral-medium-latest (Balanced Hollywood guidance)</option>
+                      <option value="mistral-small-latest">mistral-small-latest (Snappy structure)</option>
+                      <option value="open-mistral-7b">open-mistral-7b (Fast drafts)</option>
+                      <option value="pixtral-12b">pixtral-12b (Multimodal visual assistant)</option>
+                    </select>
+                    <button class="btn-action" style="padding: 4px 10px; font-size: 11px;" onclick="document.getElementById('model-mistral').value=''; app.saveSettings(); app.logTerminal('[SYSTEM] Cleared preferred Mistral model.');">Clear</button>
+                  </div>
+                </div>
+
+                <div class="custom-input-group">
+                  <span class="field-label">Preferred Kie AI (Kling) Model</span>
+                  <div style="display:flex; gap:10px; align-items:center;">
+                    <select id="model-kie" class="input-text" style="background-color: var(--bg-deep); flex-grow:1;" onchange="app.saveSettings()">
+                      <option value="">-- None Selected (Default) --</option>
+                      <option value="kling-v1.5-pro">kling-v1.5-pro (High fidelity video pro)</option>
+                      <option value="kling-v1.5">kling-v1.5 (Snappy high fidelity video)</option>
+                      <option value="kling-v1">kling-v1 (Base video generator)</option>
+                      <option value="kolors">kolors (Photorealistic Kie image engine)</option>
+                    </select>
+                    <button class="btn-action" style="padding: 4px 10px; font-size: 11px;" onclick="document.getElementById('model-kie').value=''; app.saveSettings(); app.logTerminal('[SYSTEM] Cleared preferred Kie AI model.');">Clear</button>
+                  </div>
+                </div>
+
+                <div class="custom-input-group">
+                  <span class="field-label">Preferred OpenRouter Model</span>
+                  <div style="display:flex; gap:10px; align-items:center;">
+                    <select id="model-openrouter" class="input-text" style="background-color: var(--bg-deep); flex-grow:1;" onchange="app.saveSettings()">
+                      <option value="">-- None Selected (Default) --</option>
+                      <option value="anthropic/claude-3.5-sonnet">anthropic/claude-3.5-sonnet (Prestige creative screenwriter)</option>
+                      <option value="meta-llama/llama-3.1-405b">meta-llama/llama-3.1-405b (Unmatched open parameters)</option>
+                      <option value="liquid/lfm-40b">liquid/lfm-40b (High speed intelligence)</option>
+                      <option value="mistralai/mistral-large">mistralai/mistral-large (Native Mistral via OpenRouter)</option>
+                      <option value="google/gemini-flash-1.5">google/gemini-flash-1.5 (High throughput production)</option>
+                    </select>
+                    <button class="btn-action" style="padding: 4px 10px; font-size: 11px;" onclick="document.getElementById('model-openrouter').value=''; app.saveSettings(); app.logTerminal('[SYSTEM] Cleared preferred OpenRouter model.');">Clear</button>
+                  </div>
+                </div>
+                
+                <div style="display:flex; gap:12px; margin-top: 8px;">
+                  <button class="btn-action danger" style="padding: 6px 14px; font-size: 11px; width: auto;" onclick="app.clearAllModelPrefs()">Vider Tous les Modèles Choisis (Clear All Preferred Models)</button>
                 </div>
               </div>
             </div>
@@ -2224,7 +2339,14 @@
         const keyAnthropic = DB.get("key_anthropic", "");
         const keyFal = DB.get("key_fal", "");
         const keyMistral = DB.get("key_mistral", "");
+        const keyKie = DB.get("key_kie", "");
+        const keyOpenRouter = DB.get("key_openrouter", "");
         const keyN8n = DB.get("key_n8n", "");
+
+        const modelOpenAI = DB.get("model_openai", "");
+        const modelMistral = DB.get("model_mistral", "");
+        const modelKie = DB.get("model_kie", "");
+        const modelOpenRouter = DB.get("model_openrouter", "");
 
         const elPreferred = document.getElementById("settings-preferred-ai");
         const elOpenAI = document.getElementById("key-openai");
@@ -2232,7 +2354,14 @@
         const elAnthropic = document.getElementById("key-anthropic");
         const elFal = document.getElementById("key-fal");
         const elMistral = document.getElementById("key-mistral");
+        const elKie = document.getElementById("key-kie");
+        const elOpenRouter = document.getElementById("key-openrouter");
         const elN8n = document.getElementById("key-n8n");
+
+        const elModelOpenAI = document.getElementById("model-openai");
+        const elModelMistral = document.getElementById("model-mistral");
+        const elModelKie = document.getElementById("model-kie");
+        const elModelOpenRouter = document.getElementById("model-openrouter");
 
         if (elPreferred) elPreferred.value = preferred;
         if (elOpenAI) elOpenAI.value = keyOpenAI;
@@ -2240,7 +2369,14 @@
         if (elAnthropic) elAnthropic.value = keyAnthropic;
         if (elFal) elFal.value = keyFal;
         if (elMistral) elMistral.value = keyMistral;
+        if (elKie) elKie.value = keyKie;
+        if (elOpenRouter) elOpenRouter.value = keyOpenRouter;
         if (elN8n) elN8n.value = keyN8n;
+
+        if (elModelOpenAI) elModelOpenAI.value = modelOpenAI;
+        if (elModelMistral) elModelMistral.value = modelMistral;
+        if (elModelKie) elModelKie.value = modelKie;
+        if (elModelOpenRouter) elModelOpenRouter.value = modelOpenRouter;
       }
 
       saveSettings() {
@@ -2250,7 +2386,14 @@
         const keyAnthropic = document.getElementById("key-anthropic").value;
         const keyFal = document.getElementById("key-fal").value;
         const keyMistral = document.getElementById("key-mistral").value;
+        const keyKie = document.getElementById("key-kie") ? document.getElementById("key-kie").value : "";
+        const keyOpenRouter = document.getElementById("key-openrouter") ? document.getElementById("key-openrouter").value : "";
         const keyN8n = document.getElementById("key-n8n").value;
+
+        const modelOpenAI = document.getElementById("model-openai") ? document.getElementById("model-openai").value : "";
+        const modelMistral = document.getElementById("model-mistral") ? document.getElementById("model-mistral").value : "";
+        const modelKie = document.getElementById("model-kie") ? document.getElementById("model-kie").value : "";
+        const modelOpenRouter = document.getElementById("model-openrouter") ? document.getElementById("model-openrouter").value : "";
 
         DB.set("preferred_ai", preferred);
         DB.set("key_openai", keyOpenAI);
@@ -2258,7 +2401,27 @@
         DB.set("key_anthropic", keyAnthropic);
         DB.set("key_fal", keyFal);
         DB.set("key_mistral", keyMistral);
+        DB.set("key_kie", keyKie);
+        DB.set("key_openrouter", keyOpenRouter);
         DB.set("key_n8n", keyN8n);
+
+        DB.set("model_openai", modelOpenAI);
+        DB.set("model_mistral", modelMistral);
+        DB.set("model_kie", modelKie);
+        DB.set("model_openrouter", modelOpenRouter);
+      }
+
+      clearAllModelPrefs() {
+        if (confirm("Voulez-vous vider toutes vos préférences de modèles ?")) {
+          if (document.getElementById("model-openai")) document.getElementById("model-openai").value = "";
+          if (document.getElementById("model-mistral")) document.getElementById("model-mistral").value = "";
+          if (document.getElementById("model-kie")) document.getElementById("model-kie").value = "";
+          if (document.getElementById("model-openrouter")) document.getElementById("model-openrouter").value = "";
+          
+          this.saveSettings();
+          this.logTerminal("[SYSTEM] All preferred models reset/cleared successfully.");
+          alert("Toutes les préférences de modèles ont été vidées !");
+        }
       }
 
       testAPI(service) {
@@ -3689,6 +3852,13 @@
           }
         ]);
 
+        // Load custom cinematic skills
+        this.customSkills = DB.get("custom_skills_v1", [
+          { id: "skill_contrast", title: "Dramatic Chiaroscuro", prompt: "Use strong light-dark contrasts, high single source side-lit keying, and deep shadow falloff." },
+          { id: "skill_anamorphic", title: "Anamorphic Cinematic Flare", prompt: "Render horizontal blue-streak lens flares, heavy bokeh, and oval defocus textures." },
+          { id: "skill_dialogue", title: "Dialogue Polisher", prompt: "Keep characters positioned in a classic OTS (Over-The-Shoulder) alignment to stress face tension." }
+        ]);
+
         this.editingCardId = null;
         this.isPanning = false;
         this.panStartX = 0;
@@ -3701,12 +3871,14 @@
 
         // Render initial state
         this.renderActiveAgents();
+        this.renderCustomSkills();
       }
 
       initStoryboardWorkspace() {
         this.applyWhiteboardTransform();
         this.renderStoryboardCards();
         this.renderActiveAgents();
+        this.renderCustomSkills();
         this.renderInspector();
       }
 
@@ -4320,7 +4492,10 @@
 
         if (mistralKey) {
           try {
-            this.logTerminal(`[SYSTEM] Found Mistral AI key! Sending secure payload request to api.mistral.ai...`);
+            // Retrieve preferred Mistral model
+            const preferredModel = DB.get("model_mistral", "open-mistral-7b") || "open-mistral-7b";
+            this.logTerminal(`[SYSTEM] Found Mistral AI key! Sending secure payload request to api.mistral.ai using model: ${preferredModel}...`);
+            
             const res = await fetch("https://api.mistral.ai/v1/chat/completions", {
               method: "POST",
               headers: {
@@ -4328,9 +4503,12 @@
                 "Content-Type": "application/json"
               },
               body: JSON.stringify({
-                model: "open-mistral-7b",
+                model: preferredModel,
                 messages: [
-                  { role: "system", content: "You are a professional Hollywood Director and Screenwriter. Your role is to give a creative screenplay dialogue snippet or directorial guidance based on a storyboarding element (Character, Prop or Location) shared by the user." },
+                  { 
+                    role: "system", 
+                    content: "You are a professional Hollywood Director and Screenwriter. Your role is to give a creative screenplay dialogue snippet or directorial guidance based on a storyboarding element (Character, Prop or Location) shared by the user. CRITICAL FORMATTING INSTRUCTION: Under NO circumstances should you use Markdown formatting (such as asterisks **, headings #, bold, or bullet list dashes -) in your response, unless the user's input explicitly asks for Markdown formatting. Provide pure, clear, clean plain-text paragraph format only." 
+                  },
                   { role: "user", content: `Please review this storyboard element:\nTitle: ${card.title}\nType: ${card.type}\nDescription: ${card.desc}\nParameters: ${JSON.stringify(card.details)}` }
                 ]
               })
@@ -4497,6 +4675,107 @@ VISUAL PALETTE:
           this.renderActiveAgents();
           this.logTerminal(`[SYSTEM] Undeployed agent [${id}] from workspace memory.`);
         }
+      }
+
+      // -------------------------------------------------------------------------
+      // Custom Cinematic Skills Management
+      // -------------------------------------------------------------------------
+      addCustomSkill() {
+        const titleInput = document.getElementById("new-skill-title");
+        const promptInput = document.getElementById("new-skill-prompt");
+        if (!titleInput || !promptInput) return;
+
+        const title = titleInput.value.trim();
+        const prompt = promptInput.value.trim();
+
+        if (!title || !prompt) {
+          alert("Veuillez remplir le titre et la consigne de la compétence !");
+          return;
+        }
+
+        const id = "skill_" + Date.now();
+        const newSkill = { id, title, prompt };
+
+        this.customSkills.push(newSkill);
+        DB.set("custom_skills_v1", this.customSkills);
+
+        titleInput.value = "";
+        promptInput.value = "";
+
+        this.renderCustomSkills();
+        this.logTerminal(`[SYSTEM] New Cinematic Skill added: "${title}"`);
+        alert(`La compétence "${title}" a été ajoutée avec succès !`);
+      }
+
+      renderCustomSkills() {
+        const list = document.getElementById("active-skills-list");
+        if (!list) return;
+
+        list.innerHTML = "";
+        
+        if (this.customSkills.length === 0) {
+          list.innerHTML = `<div style="font-size:10px; color:var(--text-muted); text-align:center; padding:10px; font-family:var(--font-mono);">No active skills. Create one above!</div>`;
+          return;
+        }
+
+        this.customSkills.forEach(sk => {
+          const row = document.createElement("div");
+          row.className = "agent-item-row";
+          row.style.flexDirection = "column";
+          row.style.alignItems = "stretch";
+          row.style.gap = "6px";
+          row.style.cursor = "default";
+          
+          row.innerHTML = `
+            <div style="display:flex; justify-content:space-between; align-items:center; width:100%;">
+              <div style="font-weight:600; font-size:12px; color:var(--accent);">⚡ ${sk.title}</div>
+              <span style="font-size:11px; color:var(--text-muted); cursor:pointer; padding:2px 6px;" title="Delete Skill" onclick="event.stopPropagation(); app.deleteCustomSkill('${sk.id}')">✕</span>
+            </div>
+            <div style="font-size:10px; color:var(--text-muted); font-family:var(--font-mono); line-height:1.4; word-break:break-word;">
+              ${sk.prompt}
+            </div>
+            <div style="display:flex; gap:6px; margin-top:4px;">
+              <button class="btn-action" style="font-size:9px; padding:2px 6px; flex-grow:1; border-color: rgba(255,255,255,0.15);" onclick="app.applyCustomSkill('${sk.id}')">Apply to Workspace</button>
+            </div>
+          `;
+          list.appendChild(row);
+        });
+      }
+
+      deleteCustomSkill(id) {
+        if (confirm("Voulez-vous supprimer cette compétence ?")) {
+          this.customSkills = this.customSkills.filter(sk => sk.id !== id);
+          DB.set("custom_skills_v1", this.customSkills);
+          this.renderCustomSkills();
+          this.logTerminal(`[SYSTEM] Removed cinematic skill [${id}] from studio memory.`);
+        }
+      }
+
+      applyCustomSkill(id) {
+        const sk = this.customSkills.find(s => s.id === id);
+        if (!sk) return;
+        
+        this.logTerminal(`[SYSTEM] Applied skill "${sk.title}" to prompt composition focus.`);
+        
+        if (this.selectedCardId) {
+          const card = this.storyboardCards.find(c => c.id === this.selectedCardId);
+          if (card) {
+            card.desc = (card.desc ? card.desc + ". " : "") + sk.prompt;
+            this.renderStoryboardCards();
+            this.renderInspector();
+            this.logTerminal(`[SKILL SYNC] Appended skill instruction directly onto selected Chalkboard card: [${card.title}].`);
+            alert(`La compétence "${sk.title}" a été ajoutée à la description de la carte sélectionnée [${card.title}] !`);
+            return;
+          }
+        }
+        
+        const elDesc = document.getElementById("builder-scene-title");
+        if (elDesc) {
+          elDesc.value = elDesc.value + " (with " + sk.title + ")";
+          this.updatePreview();
+        }
+        
+        alert(`La compétence "${sk.title}" a été appliquée au projet actif !`);
       }
 
       // -------------------------------------------------------------------------
