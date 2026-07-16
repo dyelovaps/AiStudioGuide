@@ -1329,6 +1329,12 @@
       100% { border-bottom-color: rgba(210, 164, 90, 1.0); }
     }
 
+    @keyframes dash-flow {
+      to {
+        stroke-dashoffset: -20;
+      }
+    }
+
     /* Help guides button style */
     .help-icon-btn {
       display: inline-flex;
@@ -1943,6 +1949,8 @@
           <div id="storyboard-viewport" class="whiteboard-viewport" onmousedown="app.handleWhiteboardMouseDown(event)">
             <!-- Infinite grid -->
             <div id="storyboard-grid" class="whiteboard-grid">
+              <!-- SVG for rendering ComfyUI / AZ8 visual wires -->
+              <svg id="storyboard-connections-svg" style="position: absolute; top: 0; left: 0; width: 4000px; height: 4000px; pointer-events: none; z-index: 1; overflow: visible;"></svg>
               <!-- Dynamically rendered Storyboard cards go here -->
             </div>
 
@@ -5275,6 +5283,26 @@
         this.cardXAtDragStart = 0;
         this.cardYAtDragStart = 0;
 
+        this.selectedConnectionId = null;
+        this.storyboardConnections = DB.get("storyboard_connections_v1", [
+          {
+            id: "conn_1",
+            fromId: "card_char_1",
+            toId: "card_loc_1",
+            label: "Présent dans",
+            color: "#49c490",
+            wireStyle: "curved"
+          },
+          {
+            id: "conn_2",
+            fromId: "card_prop_1",
+            toId: "card_loc_1",
+            label: "Placé dans",
+            color: "#d2a45a",
+            wireStyle: "curved"
+          }
+        ]);
+
         // Render initial state
         this.renderActiveAgents();
         this.renderCustomSkills();
@@ -5403,10 +5431,12 @@
 
       selectCard(id) {
         this.selectedCardId = id;
+        this.selectedConnectionId = null; // deselect active connection
         document.querySelectorAll(".whiteboard-card").forEach(el => el.classList.remove("active"));
         const cardEl = document.getElementById(id);
         if (cardEl) cardEl.classList.add("active");
         this.renderInspector();
+        this.drawStoryboardConnections();
       }
 
       handleCardHeaderMouseDown(e, cardId) {
@@ -5436,6 +5466,7 @@
           if (el) {
             el.style.transform = `translate(${card.x}px, ${card.y}px)`;
           }
+          this.drawStoryboardConnections();
         };
 
         const upHandler = () => {
@@ -5523,6 +5554,183 @@
           `;
           grid.appendChild(card);
         });
+
+        // Draw node connections wires
+        this.drawStoryboardConnections();
+      }
+
+      drawStoryboardConnections() {
+        const svg = document.getElementById("storyboard-connections-svg");
+        if (!svg) return;
+
+        // Clear existing wires and markers
+        svg.innerHTML = "";
+
+        // Add defs element
+        const defs = document.createElementNS("http://www.w3.org/2000/svg", "defs");
+        svg.appendChild(defs);
+
+        this.storyboardConnections.forEach(conn => {
+          const fromCard = this.storyboardCards.find(c => c.id === conn.fromId);
+          const toCard = this.storyboardCards.find(c => c.id === conn.toId);
+          if (!fromCard || !toCard) return;
+
+          // Compute right edge middle for 'from' and left edge middle for 'to'
+          const x_from = fromCard.x + 290;
+          const y_from = fromCard.y + 70;
+          const x_to = toCard.x;
+          const y_to = toCard.y + 70;
+
+          // Dynamic arrowhead marker
+          const color = conn.color || "#d2a45a";
+          const label = conn.label || "Filaire";
+          const style = conn.wireStyle || "curved";
+          const markerId = `arrow-${color.replace("#", "")}`;
+
+          if (!defs.querySelector(`#${markerId}`)) {
+            const marker = document.createElementNS("http://www.w3.org/2000/svg", "marker");
+            marker.setAttribute("id", markerId);
+            marker.setAttribute("viewBox", "0 0 10 10");
+            marker.setAttribute("refX", "8");
+            marker.setAttribute("refY", "5");
+            marker.setAttribute("markerWidth", "6");
+            marker.setAttribute("markerHeight", "6");
+            marker.setAttribute("orient", "auto-start-reverse");
+            marker.innerHTML = `<path d="M 0 1.5 L 8 5 L 0 8.5 z" fill="${color}" />`;
+            defs.appendChild(marker);
+          }
+
+          // Calculate path
+          let d = "";
+          let midX = (x_from + x_to) / 2;
+          let midY = (y_from + y_to) / 2;
+
+          if (style === "curved") {
+            const cp1x = x_from + 120;
+            const cp1y = y_from;
+            const cp2x = x_to - 120;
+            const cp2y = y_to;
+            d = `M ${x_from} ${y_from} C ${cp1x} ${cp1y}, ${cp2x} ${cp2y}, ${x_to} ${y_to}`;
+            // Midpoint of cubic Bezier curve at t = 0.5
+            midX = 0.125 * x_from + 0.375 * cp1x + 0.375 * cp2x + 0.125 * x_to;
+            midY = 0.125 * y_from + 0.375 * cp1y + 0.375 * cp2y + 0.125 * y_to;
+          } else if (style === "step") {
+            d = `M ${x_from} ${y_from} H ${midX} V ${y_to} H ${x_to}`;
+          } else {
+            d = `M ${x_from} ${y_from} L ${x_to} ${y_to}`;
+          }
+
+          // Draw back highlight for click zone
+          const hitPath = document.createElementNS("http://www.w3.org/2000/svg", "path");
+          hitPath.setAttribute("d", d);
+          hitPath.setAttribute("fill", "none");
+          hitPath.setAttribute("stroke", "transparent");
+          hitPath.setAttribute("stroke-width", "12");
+          hitPath.setAttribute("style", "cursor: pointer; pointer-events: stroke;");
+          hitPath.onclick = (e) => {
+            e.stopPropagation();
+            this.selectConnection(conn.id);
+          };
+          svg.appendChild(hitPath);
+
+          // Draw actual visual path
+          const path = document.createElementNS("http://www.w3.org/2000/svg", "path");
+          path.setAttribute("d", d);
+          path.setAttribute("fill", "none");
+          path.setAttribute("stroke", color);
+          path.setAttribute("stroke-width", this.selectedConnectionId === conn.id ? "3.5" : "2.5");
+          path.setAttribute("marker-end", `url(#${markerId})`);
+
+          // Style and animation
+          let filterStyle = "filter: drop-shadow(0px 0px 4px rgba(0,0,0,0.6));";
+          if (this.selectedCardId === conn.fromId || this.selectedCardId === conn.toId || this.selectedConnectionId === conn.id) {
+            path.setAttribute("stroke-dasharray", "6,6");
+            filterStyle = `filter: drop-shadow(0px 0px 8px ${color}); animation: dash-flow 1.2s linear infinite;`;
+          }
+          path.setAttribute("style", filterStyle);
+          svg.appendChild(path);
+
+          // Connection Label Badge using foreignObject
+          const fo = document.createElementNS("http://www.w3.org/2000/svg", "foreignObject");
+          fo.setAttribute("x", (midX - 75).toString());
+          fo.setAttribute("y", (midY - 12).toString());
+          fo.setAttribute("width", "150");
+          fo.setAttribute("height", "24");
+          fo.setAttribute("style", "pointer-events: auto; overflow: visible;");
+
+          const isSelected = this.selectedConnectionId === conn.id;
+          const bgCol = isSelected ? "rgba(210, 164, 90, 0.95)" : "rgba(18, 18, 24, 0.92)";
+          const textCol = isSelected ? "#000000" : "var(--text-main)";
+          const borderCol = isSelected ? "var(--accent)" : color;
+
+          fo.innerHTML = `
+            <div style="display:flex; align-items:center; justify-content:center; gap:5px; background-color:${bgCol}; border:1px solid ${borderCol}; border-radius:10px; padding:2px 6px; font-family:var(--font-sans); font-size:9px; color:${textCol}; box-shadow:0 3px 6px rgba(0,0,0,0.5); white-space:nowrap; cursor:pointer; height:20px; transition: all 0.2s;" onclick="event.stopPropagation(); app.selectConnection('${conn.id}')">
+              <span style="display:inline-block; width:5px; height:5px; background-color:${isSelected ? '#000000' : color}; border-radius:50%;"></span>
+              <strong style="text-transform:uppercase; font-size:8px; letter-spacing:0.3px; max-width:90px; overflow:hidden; text-overflow:ellipsis;">${label}</strong>
+              <span style="color:${isSelected ? '#000' : 'var(--text-muted)'}; font-size:9px; margin-left:3px; cursor:pointer; font-weight:bold; width:12px; height:12px; display:inline-flex; align-items:center; justify-content:center; border-radius:50%; background-color:rgba(255,255,255,0.08);" onclick="event.stopPropagation(); app.deleteConnection('${conn.id}')" title="Supprimer la connexion">✕</span>
+            </div>
+          `;
+          svg.appendChild(fo);
+        });
+      }
+
+      selectConnection(connId) {
+        this.selectedConnectionId = connId;
+        this.selectedCardId = null; // deselect active card
+        document.querySelectorAll(".whiteboard-card").forEach(el => el.classList.remove("active"));
+        this.renderInspector();
+        this.drawStoryboardConnections();
+        this.logTerminal(`[FILAIRE] Selected connection [${connId}] for configuration.`);
+      }
+
+      addConnection(fromId, toId, label, color = "#d2a45a", wireStyle = "curved") {
+        if (!fromId || !toId) {
+          alert("Veuillez sélectionner un nœud source et un nœud cible.");
+          return;
+        }
+        if (fromId === toId) {
+          alert("Impossible de connecter un nœud à lui-même.");
+          return;
+        }
+
+        const newConn = {
+          id: "conn_" + Date.now(),
+          fromId: fromId,
+          toId: toId,
+          label: label || "Liaison",
+          color: color,
+          wireStyle: wireStyle
+        };
+
+        this.storyboardConnections.push(newConn);
+        DB.set("storyboard_connections_v1", this.storyboardConnections);
+        this.selectedConnectionId = newConn.id;
+        this.selectedCardId = null;
+        
+        this.drawStoryboardConnections();
+        this.renderInspector();
+        this.logTerminal(`[FILAIRE] Created wire connection: [${fromId}] ➔ [${toId}] labeled "${label}".`);
+      }
+
+      deleteConnection(connId) {
+        if (confirm("Supprimer cette liaison filaire ?")) {
+          this.storyboardConnections = this.storyboardConnections.filter(c => c.id !== connId);
+          DB.set("storyboard_connections_v1", this.storyboardConnections);
+          if (this.selectedConnectionId === connId) {
+            this.selectedConnectionId = null;
+          }
+          this.drawStoryboardConnections();
+          this.renderInspector();
+          this.logTerminal(`[FILAIRE] Deleted wire connection [${connId}].`);
+        }
+      }
+
+      updateConnectionField(connId, key, val) {
+        const conn = this.storyboardConnections.find(c => c.id === connId);
+        if (!conn) return;
+        conn[key] = val;
+        DB.set("storyboard_connections_v1", this.storyboardConnections);
+        this.drawStoryboardConnections();
       }
 
       // -------------------------------------------------------------------------
@@ -5703,6 +5911,65 @@
         const view = document.getElementById("inspector-card-details");
         if (!view) return;
 
+        // Support Wire Connection editing in Inspector
+        if (this.selectedConnectionId) {
+          const conn = this.storyboardConnections.find(c => c.id === this.selectedConnectionId);
+          if (!conn) return;
+
+          const fromCard = this.storyboardCards.find(c => c.id === conn.fromId);
+          const toCard = this.storyboardCards.find(c => c.id === conn.toId);
+
+          const fromTitle = fromCard ? fromCard.title : "Inconnu";
+          const toTitle = toCard ? toCard.title : "Inconnu";
+
+          view.innerHTML = `
+            <div style="display:flex; flex-direction:column; gap:14px; background-color:var(--bg-deep); border:1px solid var(--border-color); border-radius:8px; padding:14px; box-shadow:0 10px 30px rgba(0,0,0,0.5);">
+              <div style="display:flex; justify-content:space-between; align-items:center;">
+                <span style="font-size:11px; font-weight:700; font-family:var(--font-mono); color:var(--accent);">🔌 CONFIGURATION FILAIRE</span>
+                <span style="font-size:10px; font-family:var(--font-mono); color:var(--text-muted); cursor:pointer;" onclick="app.selectConnection(null); app.renderInspector();">✕ Fermer</span>
+              </div>
+
+              <div style="font-size:11px; color:var(--text-muted); display:flex; flex-direction:column; gap:4px; padding:8px; background-color:rgba(255,255,255,0.02); border-radius:6px; border:1px solid rgba(255,255,255,0.04);">
+                <div><strong style="color:var(--accent);">Nœud Source (Output) :</strong> ${fromTitle}</div>
+                <div style="margin-top:2px;"><strong style="color:var(--accent);">Nœud Cible (Input) :</strong> ${toTitle}</div>
+              </div>
+
+              <div style="display:flex; flex-direction:column; gap:12px;">
+                <div class="custom-input-group">
+                  <span class="field-label" style="font-size:10px;">Label de la Relation / Rôle</span>
+                  <input type="text" class="input-text" value="${conn.label}" oninput="app.updateConnectionField('${conn.id}', 'label', this.value)">
+                </div>
+
+                <div class="custom-input-group">
+                  <span class="field-label" style="font-size:10px;">Couleur du Câble</span>
+                  <select class="input-text" onchange="app.updateConnectionField('${conn.id}', 'color', this.value)" style="background-color: var(--bg-deep); border-color: var(--border-color); color: var(--text-main); font-size:11px;">
+                    <option value="#d2a45a" ${conn.color === '#d2a45a' ? 'selected' : ''}>Or (Cinematic)</option>
+                    <option value="#49c490" ${conn.color === '#49c490' ? 'selected' : ''}>Émeraude (Character)</option>
+                    <option value="#3b82f6" ${conn.color === '#3b82f6' ? 'selected' : ''}>Bleu Royal (Atmosphere)</option>
+                    <option value="#ef4444" ${conn.color === '#ef4444' ? 'selected' : ''}>Rouge Crimson (Action)</option>
+                    <option value="#a855f7" ${conn.color === '#a855f7' ? 'selected' : ''}>Violet Néon (Prop)</option>
+                    <option value="#ffffff" ${conn.color === '#ffffff' ? 'selected' : ''}>Blanc Neutre</option>
+                  </select>
+                </div>
+
+                <div class="custom-input-group">
+                  <span class="field-label" style="font-size:10px;">Style du Câble (Filaire)</span>
+                  <select class="input-text" onchange="app.updateConnectionField('${conn.id}', 'wireStyle', this.value)" style="background-color: var(--bg-deep); border-color: var(--border-color); color: var(--text-main); font-size:11px;">
+                    <option value="curved" ${conn.wireStyle === 'curved' ? 'selected' : ''}>Courbe de Bézier (ComfyUI)</option>
+                    <option value="straight" ${conn.wireStyle === 'straight' ? 'selected' : ''}>Ligne Droite</option>
+                    <option value="step" ${conn.wireStyle === 'step' ? 'selected' : ''}>Orthogonal (Par paliers)</option>
+                  </select>
+                </div>
+              </div>
+
+              <div style="border-top:1px solid rgba(255,255,255,0.05); padding-top:12px; display:flex; flex-direction:column; gap:8px;">
+                <button class="btn-action" style="font-size:11px; padding:6px; border-color:var(--error); color:var(--error);" onclick="app.deleteConnection('${conn.id}')">✕ Supprimer Liaison</button>
+              </div>
+            </div>
+          `;
+          return;
+        }
+
         // Support Flow Shot Inspector editing
         if (this.selectedFlowShotId) {
           const shot = this.googleFlowShots.find(s => s.id === this.selectedFlowShotId);
@@ -5782,7 +6049,7 @@
         if (!this.selectedCardId) {
           view.innerHTML = `
             <div style="text-align:center; padding: 40px; color:var(--text-muted); font-family:var(--font-mono); font-size:11px;">
-              Select a card on the chalkboard or a shot node in the Google Flow pipeline to inspect, bind variables, or render compute files.
+              Sélectionnez une carte sur le tableau noir ou un câble de liaison pour configurer les paramètres de scène, synchroniser avec l'IA ou éditer les câblages.
             </div>
           `;
           return;
@@ -5803,6 +6070,39 @@
           `;
         });
 
+        // List connection target options
+        let targetOptionsHTML = `<option value="">-- Choisir cible (Input) --</option>`;
+        this.storyboardCards.forEach(c => {
+          if (c.id !== card.id) {
+            const icon = c.type === "character" ? "👤" : c.type === "prop" ? "📦" : "🗺️";
+            targetOptionsHTML += `<option value="${c.id}">${icon} ${c.title} (${c.type})</option>`;
+          }
+        });
+
+        // Gather existing connections for this card
+        let cardConnsHTML = "";
+        const activeConns = this.storyboardConnections.filter(c => c.fromId === card.id || c.toId === card.id);
+        if (activeConns.length > 0) {
+          cardConnsHTML += `<div style="display:flex; flex-direction:column; gap:5px; margin-bottom:10px;">`;
+          activeConns.forEach(c => {
+            const otherId = c.fromId === card.id ? c.toId : c.fromId;
+            const otherNode = this.storyboardCards.find(nd => nd.id === otherId);
+            const otherTitle = otherNode ? otherNode.title : "Inconnu";
+            const directionText = c.fromId === card.id ? "➔" : "⬅";
+            cardConnsHTML += `
+              <div style="display:flex; justify-content:space-between; align-items:center; background-color:rgba(255,255,255,0.02); padding:5px 8px; border-radius:4px; border-left:2.5px solid ${c.color}; font-size:10px;">
+                <span style="color:var(--text-main); font-family:var(--font-mono); cursor:pointer; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; max-width:180px;" onclick="app.selectConnection('${c.id}')" title="Modifier le fil">
+                  <strong>${c.label}</strong> ${directionText} ${otherTitle}
+                </span>
+                <span style="cursor:pointer; color:var(--text-muted); font-weight:bold; padding:0 3px;" onclick="app.deleteConnection('${c.id}')" title="Supprimer la liaison">✕</span>
+              </div>
+            `;
+          });
+          cardConnsHTML += `</div>`;
+        } else {
+          cardConnsHTML = `<p style="font-size:10px; color:var(--text-muted); font-style:italic; margin-bottom:10px;">Aucune liaison filaire active pour ce nœud.</p>`;
+        }
+
         view.innerHTML = `
           <div style="display:flex; flex-direction:column; gap:14px; background-color:var(--bg-deep); border:1px solid var(--border-color); border-radius:8px; padding:14px; box-shadow:0 10px 30px rgba(0,0,0,0.5);">
             <div style="display:flex; justify-content:space-between; align-items:center;">
@@ -5815,6 +6115,52 @@
             
             <div style="display:flex; flex-direction:column; gap:8px; margin-top:6px; border-top:1px solid rgba(255,255,255,0.05); padding-top:10px;">
               ${dynamicSpecsHTML}
+            </div>
+
+            <!-- Filaire / Connections Panel (Comfy / AZ8 style) -->
+            <div style="border-top:1px solid rgba(255,255,255,0.05); padding-top:12px; display:flex; flex-direction:column; gap:8px;">
+              <span class="field-label" style="font-size:10px; display:flex; align-items:center; justify-content:space-between;">
+                <span>🔌 LIAISONS FILAIRES (COMFY / AZ8)</span>
+                <span style="font-size:8px; color:var(--accent); background-color:rgba(210,164,90,0.15); padding:1px 4px; border-radius:3px; font-family:var(--font-mono);">WIRED</span>
+              </span>
+
+              ${cardConnsHTML}
+
+              <!-- Simple Connection Creator Form -->
+              <div style="background-color:rgba(0,0,0,0.25); border:1px solid rgba(255,255,255,0.04); border-radius:6px; padding:8px; display:flex; flex-direction:column; gap:6px;">
+                <span style="font-size:9px; font-weight:700; color:var(--text-muted); text-transform:uppercase; font-family:var(--font-mono);">Brancher un câble :</span>
+                
+                <div style="display:flex; flex-direction:column; gap:4px;">
+                  <select id="new-wire-target" class="input-text" style="font-size:10px; padding:4px; background-color:var(--bg-deep); border-color:var(--border-color); color:var(--text-main); height:24px;">
+                    ${targetOptionsHTML}
+                  </select>
+                </div>
+
+                <div style="display:flex; gap:4px;">
+                  <input type="text" id="new-wire-label" class="input-text" placeholder="Rôle / Relation (ex: Utilise, Se trouve à...)" style="font-size:10px; padding:4px; flex:1; height:24px;" value="Liaison">
+                </div>
+
+                <div style="display:grid; grid-template-columns:1fr 1fr; gap:4px;">
+                  <select id="new-wire-color" class="input-text" style="font-size:9px; padding:2px; background-color:var(--bg-deep); border-color:var(--border-color); color:var(--text-main); height:22px;">
+                    <option value="#d2a45a">Fil: Or (Cinematic)</option>
+                    <option value="#49c490">Fil: Émeraude (Char)</option>
+                    <option value="#3b82f6">Fil: Bleu (Atmos)</option>
+                    <option value="#ef4444">Fil: Rouge (Action)</option>
+                    <option value="#a855f7">Fil: Violet (Prop)</option>
+                    <option value="#ffffff">Fil: Blanc (Neutre)</option>
+                  </select>
+
+                  <select id="new-wire-style" class="input-text" style="font-size:9px; padding:2px; background-color:var(--bg-deep); border-color:var(--border-color); color:var(--text-main); height:22px;">
+                    <option value="curved">Bézier (ComfyUI)</option>
+                    <option value="straight">Ligne Droite</option>
+                    <option value="step">Orthogonal</option>
+                  </select>
+                </div>
+
+                <button class="btn-action primary" style="font-size:10px; padding:4px; font-weight:bold; color:#000; border-color:var(--accent); background-color:var(--accent); border-radius:4px; height:24px;" onclick="app.addConnection('${card.id}', document.getElementById('new-wire-target').value, document.getElementById('new-wire-label').value, document.getElementById('new-wire-color').value, document.getElementById('new-wire-style').value)">
+                  ＋ Brancher Câble Filaire
+                </button>
+              </div>
             </div>
 
             <!-- Workflow & Trigger operations -->
