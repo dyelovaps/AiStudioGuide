@@ -250,28 +250,31 @@
       padding: 10px 18px;
       border-radius: 6px;
       font-size: 13px;
-      font-weight: 600;
+      font-weight: 700;
       cursor: pointer;
       transition: all 0.2s ease;
       background-color: var(--bg-input);
       border: 1px solid var(--border-color);
-      color: var(--text-main);
+      color: #ffffff;
     }
 
     .btn-action:hover {
       background-color: var(--bg-input-hover);
-      border-color: var(--text-muted);
+      border-color: var(--accent);
+      color: var(--accent);
     }
 
     .btn-action.primary {
       background-color: var(--accent);
-      color: var(--bg-deep);
+      color: #000000;
       border-color: var(--accent);
+      font-weight: 800;
     }
 
     .btn-action.primary:hover {
       background-color: var(--accent-hover);
       border-color: var(--accent-hover);
+      color: #000000;
     }
 
     .btn-action.danger {
@@ -965,7 +968,8 @@
       border-radius: 3px;
       background-color: var(--bg-input);
       border: 1px solid var(--border-color);
-      color: var(--text-muted);
+      color: #ffffff;
+      font-weight: 700;
       cursor: pointer;
       transition: all 0.15s;
     }
@@ -1257,7 +1261,8 @@
       border-radius: 4px;
       background-color: var(--bg-deep);
       border: 1px solid var(--border-color);
-      color: var(--text-muted);
+      color: #ffffff;
+      font-weight: 700;
       cursor: pointer;
       display: flex;
       align-items: center;
@@ -1322,6 +1327,35 @@
     @keyframes pulse-border {
       0% { border-bottom-color: rgba(210, 164, 90, 0.2); }
       100% { border-bottom-color: rgba(210, 164, 90, 1.0); }
+    }
+
+    /* Help guides button style */
+    .help-icon-btn {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      width: 18px;
+      height: 18px;
+      background-color: var(--accent-muted);
+      border: 1.5px solid var(--accent);
+      color: var(--accent) !important;
+      border-radius: 50%;
+      font-size: 11px;
+      font-weight: 800;
+      cursor: pointer;
+      font-family: var(--font-mono);
+      transition: all 0.2s ease;
+      vertical-align: middle;
+      margin-left: 8px;
+      padding: 0;
+      line-height: 1;
+    }
+
+    .help-icon-btn:hover {
+      background-color: var(--accent);
+      color: #000000 !important;
+      box-shadow: 0 0 8px var(--accent);
+      transform: scale(1.1);
     }
 
     /* Agent Item list styles */
@@ -1398,6 +1432,16 @@
         <span class="tooltip">Cinematography Library</span>
       </button>
 
+      <button class="nav-btn" data-screen="plugins" onclick="app.navigateTo('plugins')">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <rect x="2" y="2" width="20" height="8" rx="2" ry="2"></rect>
+          <rect x="2" y="14" width="20" height="8" rx="2" ry="2"></rect>
+          <line x1="6" y1="6" x2="6.01" y2="6"></line>
+          <line x1="6" y1="18" x2="6.01" y2="18"></line>
+        </svg>
+        <span class="tooltip">Plugins & Packs</span>
+      </button>
+
       <button class="nav-btn" data-screen="settings" onclick="app.navigateTo('settings')">
         <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"></circle><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"></path></svg>
         <span class="tooltip">Preferences</span>
@@ -1438,6 +1482,16 @@
               <div class="home-card-title">Documentation</div>
               <div class="home-card-desc">Comprehensive reference list for cameras, lenses, and cinematic color science.</div>
             </div>
+            <div class="home-card-btn" onclick="app.navigateTo('plugins')">
+              <svg class="home-card-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <rect x="2" y="2" width="20" height="8" rx="2" ry="2"></rect>
+                <rect x="2" y="14" width="20" height="8" rx="2" ry="2"></rect>
+                <line x1="6" y1="6" x2="6.01" y2="6"></line>
+                <line x1="6" y1="18" x2="6.01" y2="18"></line>
+              </svg>
+              <div class="home-card-title">Plugins & Packs</div>
+              <div class="home-card-desc">Load custom cinematography plugins, active rules, questions, and templates.</div>
+            </div>
             <div class="home-card-btn" onclick="app.navigateTo('settings')">
               <svg class="home-card-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"></circle><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"></path></svg>
               <div class="home-card-title">Studio Settings</div>
@@ -1454,7 +1508,7 @@
         <!-- Sidebar context info (left panel) -->
         <div class="panel-left" id="builder-left-panel">
           <div class="panel-header">
-            <span class="panel-title">PROMPT METADATA</span>
+            <span class="panel-title">PROMPT METADATA <button class="help-icon-btn" onclick="app.showHelp('builder')" title="Comment ça marche ?">?</button></span>
           </div>
           <div class="panel-body-scroll">
             <div class="custom-input-group" style="margin-bottom: 20px;">
@@ -1526,7 +1580,7 @@
         <!-- Real-time dynamic compilation output (right panel) -->
         <div class="panel-right" id="builder-right-panel">
           <div class="panel-header">
-            <span class="panel-title">DYNAMIC CINEMATIC RENDERS</span>
+            <span class="panel-title">DYNAMIC CINEMATIC RENDERS <button class="help-icon-btn" onclick="app.showHelp('viewfinder')" title="Comment ça marche ?">?</button></span>
             <button class="btn-action" onclick="app.saveCurrentProject()">Save Project</button>
           </div>
           <div class="output-tab-container">
@@ -1659,7 +1713,7 @@
       <div id="screen-projects" class="screen">
         <div class="panel-left">
           <div class="panel-header">
-            <span class="panel-title">MY CREATIVE LIBRARY</span>
+            <span class="panel-title">MY CREATIVE LIBRARY <button class="help-icon-btn" onclick="app.showHelp('general')" title="Comment ça marche ?">?</button></span>
           </div>
           <div class="panel-body-scroll" id="projects-sidebar-list">
             <!-- Active saved items list -->
@@ -1667,7 +1721,7 @@
         </div>
         <div class="panel-center">
           <div class="panel-header">
-            <span class="panel-title">PROJECT DASHBOARD</span>
+            <span class="panel-title">PROJECT DASHBOARD <button class="help-icon-btn" onclick="app.showHelp('general')" title="Comment ça marche ?">?</button></span>
             <button class="btn-action primary" onclick="app.startNewPrompt()">Create New Prompt</button>
           </div>
           <div class="panel-body-scroll">
@@ -1692,7 +1746,7 @@
       <div id="screen-copilot" class="screen">
         <div class="panel-left">
           <div class="panel-header">
-            <span class="panel-title">DIRECTOR CO-PILOT</span>
+            <span class="panel-title">DIRECTOR CO-PILOT <button class="help-icon-btn" onclick="app.showHelp('copilot')" title="Comment ça marche ?">?</button></span>
           </div>
           <div class="panel-body-scroll" style="display:flex; flex-direction:column; gap:16px;">
             <div style="text-align:center; padding:12px 0;">
@@ -1702,7 +1756,7 @@
             
             <div style="border-top: 1px solid var(--border-color); padding-top:16px; margin-top:8px;">
               <span class="field-label" style="display:block; margin-bottom:12px;">Quick Directives</span>
-              <div style="display:flex; flex-direction:column; gap:10px;">
+              <div style="display:flex; flex-direction:column; gap:10px;" id="copilot-quick-directives">
                 <button class="btn-action" style="text-align:left; justify-content:flex-start; font-size:11px;" onclick="app.sendCopilotPreset('Optimize my current active prompt with ultra-detailed AI skin pores, texture and cinematography grading.')">✨ Optimize Active Prompt</button>
                 <button class="btn-action" style="text-align:left; justify-content:flex-start; font-size:11px;" onclick="app.sendCopilotPreset('Give me a high-stakes, low-key lighting courtroom deposition scene recipe.')">⚖️ Scene Recipe: Courtroom Deposition</button>
                 <button class="btn-action" style="text-align:left; justify-content:flex-start; font-size:11px;" onclick="app.sendCopilotPreset('Create a clinical desaturated teal modern political thriller prompt setup.')">💼 Scene Recipe: Political Intrigue</button>
@@ -1714,7 +1768,7 @@
         
         <div class="panel-center" style="border-right: 1px solid var(--border-color);">
           <div class="panel-header">
-            <span class="panel-title">ACTIVE CINEMATIC CHAT</span>
+            <span class="panel-title">ACTIVE CINEMATIC CHAT <button class="help-icon-btn" onclick="app.showHelp('copilot')" title="Comment ça marche ?">?</button></span>
             <button class="btn-action danger" onclick="app.clearCopilotChat()" style="font-size:11px; padding:4px 8px;">Clear Chat</button>
           </div>
           
@@ -1781,7 +1835,7 @@
         <!-- Left panel: Board Manager & Mistral Agent Hub -->
         <div class="panel-left" style="width: 320px; min-width: 320px;">
           <div class="panel-header">
-            <span class="panel-title">STORYBOARD SLATE</span>
+            <span class="panel-title">STORYBOARD SLATE <button class="help-icon-btn" onclick="app.showHelp('chalkboard')" title="Comment ça marche ?">?</button></span>
           </div>
           <div class="panel-body-scroll" style="display:flex; flex-direction:column; gap:20px; padding: 16px;">
             <div>
@@ -1865,7 +1919,7 @@
         <div class="panel-center" style="position:relative; overflow:hidden; display:flex; flex-direction:column;">
           <div class="panel-header" style="justify-content: space-between;">
             <div style="display:flex; align-items:center; gap:12px;">
-              <span class="panel-title" id="storyboard-panel-title">STORYBOARD SUITE</span>
+              <span class="panel-title" id="storyboard-panel-title">STORYBOARD SUITE <button class="help-icon-btn" onclick="app.showHelp(app.currentStoryboardView === 'googleflow' ? 'googleflow' : 'chalkboard')" title="Comment ça marche ?">?</button></span>
               <div style="display:flex; background-color:var(--bg-deep); border:1px solid var(--border-color); border-radius:6px; padding:2px;">
                 <button class="btn-action" id="btn-tab-chalkboard" style="font-size:10px; padding:4px 10px; border:none; background:var(--accent); color:#000; cursor:pointer; font-family:var(--font-mono); font-weight:700; border-radius:4px;" onclick="app.switchStoryboardView('chalkboard')">CHALKBOARD</button>
                 <button class="btn-action" id="btn-tab-googleflow" style="font-size:10px; padding:4px 10px; border:none; background:transparent; color:var(--text-muted); cursor:pointer; font-family:var(--font-mono); border-radius:4px; display:flex; align-items:center; gap:4px;" onclick="app.switchStoryboardView('googleflow')">⚡ GOOGLE FLOW <span style="background-color:rgba(210,164,90,0.15); color:var(--accent); font-size:8px; padding:1px 3px; border-radius:3px; font-weight:800;">PRO</span></button>
@@ -1875,7 +1929,7 @@
               <button class="btn-action" style="font-size:11px; padding:4px 8px;" onclick="app.resetWhiteboardView()">Center Slate</button>
             </div>
             <div style="display:none; gap:8px;" id="googleflow-header-controls">
-              <button class="btn-action primary" style="font-size:11px; padding:4px 8px; border-color: var(--accent); color: var(--accent); font-weight:600;" onclick="app.addGoogleFlowShot()">＋ New Flow Shot</button>
+              <button class="btn-action primary" style="font-size:11px; padding:4px 8px; border-color: var(--accent); color: #000000; font-weight:600;" onclick="app.addGoogleFlowShot()">＋ New Flow Shot</button>
               <button class="btn-action" style="font-size:11px; padding:4px 8px; background-color:#1e1b12; border-color:#d2a45a; font-weight:600; color:var(--accent);" onclick="app.playGoogleFlowSeq()">▶ Play Flow Sequence</button>
             </div>
           </div>
@@ -1936,7 +1990,7 @@
         <!-- Right panel: Card Inspector, Workflows, and Terminals -->
         <div class="panel-right" style="width: 360px; min-width: 360px;">
           <div class="panel-header">
-            <span class="panel-title">CARD INSPECTOR & TERMINAL</span>
+            <span class="panel-title">CARD INSPECTOR & TERMINAL <button class="help-icon-btn" onclick="app.showHelp('inspector')" title="Comment ça marche ?">?</button></span>
           </div>
           <div class="panel-body-scroll" style="display:flex; flex-direction:column; gap:16px; padding: 16px;">
             <div id="inspector-card-details">
@@ -1961,7 +2015,7 @@
       <div id="screen-library" class="screen">
         <div class="panel-left">
           <div class="panel-header">
-            <span class="panel-title">CINEMATIC BIBLE</span>
+            <span class="panel-title">CINEMATIC BIBLE <button class="help-icon-btn" onclick="app.showHelp('bible')" title="Comment ça marche ?">?</button></span>
           </div>
           <div class="panel-body-scroll">
             <div class="list-item selected" onclick="app.switchDocCategory('camera')">
@@ -2174,6 +2228,63 @@
         </div>
       </div>
 
+      <!-- =========================================================================
+         SCREEN 6: PLUGINS & EXTENSIBILITY CORE (CORE + PLUGIN ENGINE)
+         ========================================================================= -->
+      <div id="screen-plugins" class="screen">
+        <div class="panel-left" style="width: 340px; min-width: 340px;">
+          <div class="panel-header" style="justify-content: space-between;">
+            <span class="panel-title">PLUGIN REGISTRY</span>
+            <button class="btn-action primary" style="font-size: 10px; padding: 4px 8px;" onclick="app.createNewPlugin()">＋ Create</button>
+          </div>
+          
+          <div class="panel-body-scroll" style="padding: 16px; display: flex; flex-direction: column; gap: 16px;">
+            <p class="question-desc" style="font-size: 11px;">Plugins extend the Cinematic Bible, Prompt Builder blocks, and Director Co-Pilot rules dynamically.</p>
+            
+            <div id="plugin-list-container" style="display: flex; flex-direction: column; gap: 12px;">
+              <!-- Dynamic Plugin List -->
+            </div>
+
+            <div style="border-top: 1px solid var(--border-color); padding-top: 16px; margin-top: 8px;">
+              <span class="field-label" style="font-size: 11px; margin-bottom: 8px;">IMPORT EXTERNAL PLUGIN (.JSON)</span>
+              <textarea id="plugin-import-textarea" class="input-text" style="font-family: var(--font-mono); font-size: 10px; height: 100px; resize: none; margin-bottom: 10px;" placeholder="Collez le JSON du plugin ici..."></textarea>
+              <button class="btn-action primary" style="width: 100%; font-size: 11px; padding: 8px; margin-bottom: 12px;" onclick="app.importPluginFromText()">📥 Install Plugin Pack</button>
+              
+              <div style="background-color: rgba(212, 164, 90, 0.04); border: 1px dashed rgba(212, 164, 90, 0.25); padding: 12px; border-radius: 6px; display: flex; flex-direction: column; gap: 8px;">
+                <span style="font-family: var(--font-mono); font-size: 10px; color: var(--accent); font-weight: 700;">📁 FORMAT DU FICHIER MAÎTRE</span>
+                <p style="font-size: 10px; color: var(--text-muted); line-height: 1.4; margin: 0;">Assurez-vous que vos packs d'extension respectent la structure officielle de l'application.</p>
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 6px; margin-top: 4px;">
+                  <button class="btn-action" style="font-size: 9px; padding: 4px; display: flex; align-items: center; justify-content: center; gap: 4px;" onclick="app.downloadMasterPluginTemplate()" title="Télécharger le fichier modèle .json au format attendu">
+                    📥 Télécharger .json
+                  </button>
+                  <button class="btn-action" style="font-size: 9px; padding: 4px; display: flex; align-items: center; justify-content: center; gap: 4px;" onclick="app.fillMasterPluginTemplateToTextarea()" title="Charger la structure d'exemple directement dans le champ de saisie">
+                    📝 Charger l'exemple
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="panel-center" style="display: flex; flex-direction: column; flex-grow: 1;">
+          <div class="panel-header" style="justify-content: space-between;">
+            <span class="panel-title">PLUGIN ENGINE WORKSPACE <button class="help-icon-btn" onclick="app.showHelp('plugins')" title="Comment ça marche ?">?</button></span>
+            <div style="display:flex; gap:8px;">
+              <button class="btn-action" style="font-size:11px; padding:4px 10px;" onclick="app.exportSelectedPlugin()">📤 Export JSON</button>
+              <button class="btn-action primary" style="font-size:11px; padding:4px 10px;" onclick="app.saveSelectedPluginChanges()">💾 Save Plugin Specs</button>
+            </div>
+          </div>
+
+          <div class="panel-body-scroll" style="padding: 24px; display: flex; flex-direction: column; gap: 20px;" id="plugin-details-workspace">
+            <!-- Dynamic plugin editor form loaded when a plugin is selected -->
+            <div style="text-align: center; color: var(--text-muted); margin-top: 40px; font-family: var(--font-mono);">
+              <span style="font-size: 40px; display: block; margin-bottom: 16px;">🔌</span>
+              Select an installed plugin from the registry list on the left to inspect its parameters, or create/import a new plugin.
+            </div>
+          </div>
+        </div>
+      </div>
+
     </div>
   </div>
 
@@ -2310,6 +2421,166 @@
     };
 
     // =========================================================================
+    // 10.5 PLUGIN & PACK EXTENSIBILITY CORE (PLUG-IN ARCHITECTURE)
+    // =========================================================================
+    class BlacklawPluginManager {
+      constructor(app) {
+        this.app = app;
+        this.plugins = [];
+        this.load();
+      }
+
+      load() {
+        // Default built-in Hollywood Golden Age Plugin
+        const defaultPlugins = [
+          {
+            id: "hollywood_golden_age",
+            title: "Hollywood Golden Age (1930-1950)",
+            description: "Adds legendary Cooke Speed Panchro vintage lenses, dramatic Chiaroscuro lighting, and golden-era MGM studio styling guidelines.",
+            active: true,
+            questions: [
+              {
+                text: "Cinematic Rules of Golden Age Glamour",
+                prompt: "Show me the technical camera lens settings, light positioning, and diffusion secrets to recreate 1940s Hollywood studio key lighting."
+              },
+              {
+                text: "Vintage Technicolor 3-Strip Recipe",
+                prompt: "Explain how to set up color grading filters, light balance, and film saturation to replicate the classic Technicolor 3-Strip process."
+              }
+            ],
+            documentation: {
+              cameras: [
+                {
+                  id: "mitchell_bnc",
+                  name: "Mitchell BNC (Vintage 35mm)",
+                  visual: "High-contrast blacks, velvety soft-focus halation, deep rich grain patterns with physical organic texture.",
+                  history: "Introduced in 1934, the Mitchell BNC became the gold standard of classical studio filmmaking.",
+                  strengths: "Incredibly glamorous face rendering, gorgeous vintage contrast roll-off.",
+                  weaknesses: "Requires massive amounts of physical studio lighting to expose correctly.",
+                  best: "Golden Age glamour portraits, dramatic film-noir shadow play.",
+                  examples: "Citizen Kane (1941), Casablanca (1942)"
+                }
+              ],
+              lenses: [
+                {
+                  mm: "75mm",
+                  name: "75mm Cooke Speed Panchro f/2",
+                  perspective: "Classical portrait compression, beautifully soft swirling bokeh, organic circular focus falloff.",
+                  examples: "Ideal for warm, intimate medium close-ups of film noir leads."
+                }
+              ],
+              brands: [
+                {
+                  id: "cooke_vintage",
+                  name: "Vintage Cooke Speed Panchro (1940s)",
+                  visual: "Soft, warm, pastel-colored skin tones, subtle spherical aberration, romantic glowing highlights."
+                }
+              ],
+              lighting: [
+                {
+                  id: "glamour_key",
+                  name: "MGM Glamour Butterfly Lighting",
+                  purpose: "Placing a high-key spotlight directly overhead of the lens path to cast a symmetrical butterfly-shaped shadow under the nose, carving high cheekbones.",
+                  examples: "Classic portrait setups for Greta Garbo or Marlene Dietrich."
+                }
+              ],
+              colors: [
+                {
+                  id: "technicolor_three",
+                  name: "Technicolor Three-Strip Dye Transfer",
+                  visual: "Hyper-saturated primary reds and greens, vibrant skin luster, pitch-black ink shadows with cyan/teal midtone bias."
+                }
+              ]
+            },
+            rules: [
+              "Always prefer deep dramatic side-lit shadows (Chiaroscuro) over flat, high-key lighting.",
+              "Use optical soft-focus halation filters to emulate classical movie star portraits.",
+              "Enforce strict 1.375:1 Academy ratio framing when Golden Age plugins are active."
+            ],
+            promptBlocks: [
+              {
+                id: "skill_gold_key",
+                title: "1940s Studio Spotlight",
+                prompt: "Lit using vintage Mitchell studio lamps, deep dramatic chiaroscuro side-shadows, soft glamour face focus diffusion."
+              },
+              {
+                id: "skill_technicolor",
+                title: "Technicolor 3-Strip Calibration",
+                prompt: "Saturated red lipstick highlights, rich dye-transfer Technicolor print simulation, high chromatic contrast."
+              }
+            ]
+          }
+        ];
+
+        this.plugins = DB.get("plugins_v1", defaultPlugins);
+      }
+
+      save() {
+        DB.set("plugins_v1", this.plugins);
+      }
+
+      getAllPlugins() {
+        return this.plugins;
+      }
+
+      getPlugin(id) {
+        return this.plugins.find(p => p.id === id);
+      }
+
+      togglePlugin(id) {
+        const p = this.getPlugin(id);
+        if (p) {
+          p.active = !p.active;
+          this.save();
+          this.app.reloadCoreData();
+          this.app.logTerminal(`[PLUGIN] Toggled plugin "${p.title}" to ${p.active ? 'ACTIVE' : 'INACTIVE'}`);
+        }
+      }
+
+      deletePlugin(id) {
+        const index = this.plugins.findIndex(p => p.id === id);
+        if (index !== -1) {
+          const title = this.plugins[index].title;
+          this.plugins.splice(index, 1);
+          this.save();
+          this.app.reloadCoreData();
+          this.app.logTerminal(`[PLUGIN] Uninstalled plugin: "${title}"`);
+        }
+      }
+
+      importPlugin(jsonText) {
+        try {
+          const obj = JSON.parse(jsonText);
+          if (!obj.id || !obj.title) {
+            return { success: false, error: "ID and Title are mandatory parameters." };
+          }
+          
+          // Format assurance
+          if (!obj.questions) obj.questions = [];
+          if (!obj.documentation) obj.documentation = { cameras: [], lenses: [], brands: [], lighting: [], colors: [] };
+          if (!obj.rules) obj.rules = [];
+          if (!obj.promptBlocks) obj.promptBlocks = [];
+          obj.active = true;
+
+          // Check for existing ID
+          const existingIdx = this.plugins.findIndex(p => p.id === obj.id);
+          if (existingIdx !== -1) {
+            this.plugins[existingIdx] = obj;
+          } else {
+            this.plugins.push(obj);
+          }
+
+          this.save();
+          this.app.reloadCoreData();
+          this.app.logTerminal(`[PLUGIN] Imported and activated plugin pack: "${obj.title}"`);
+          return { success: true, plugin: obj };
+        } catch (e) {
+          return { success: false, error: "Invalid JSON format: " + e.message };
+        }
+      }
+    }
+
+    // =========================================================================
     // 11. MAIN APP WORKFLOW CONTROLLER CLASS (ES6 STATE SYSTEM)
     // =========================================================================
     class BlacklawPromptStudio {
@@ -2380,6 +2651,12 @@
           }
         ]);
         
+        // Plugin Core setup
+        this.baseCinematicData = JSON.parse(JSON.stringify(CINEMATIC_DATA));
+        this.pluginManager = new BlacklawPluginManager(this);
+        this.selectedPluginId = "hollywood_golden_age"; // default selection
+        this.reloadCoreData();
+
         this.initResizeHandlers();
         this.initSettings();
         
@@ -2387,6 +2664,722 @@
         this.initViewfinder();
         this.initCopilot();
         this.initStoryboard();
+      }
+
+      reloadCoreData() {
+        // Mutate in place to preserve references in this.steps
+        CINEMATIC_DATA.genres.length = 0;
+        CINEMATIC_DATA.genres.push(...JSON.parse(JSON.stringify(this.baseCinematicData.genres)));
+
+        CINEMATIC_DATA.cameras.length = 0;
+        CINEMATIC_DATA.cameras.push(...JSON.parse(JSON.stringify(this.baseCinematicData.cameras)));
+
+        CINEMATIC_DATA.lenses.length = 0;
+        CINEMATIC_DATA.lenses.push(...JSON.parse(JSON.stringify(this.baseCinematicData.lenses)));
+
+        CINEMATIC_DATA.brands.length = 0;
+        CINEMATIC_DATA.brands.push(...JSON.parse(JSON.stringify(this.baseCinematicData.brands)));
+
+        CINEMATIC_DATA.lighting.length = 0;
+        CINEMATIC_DATA.lighting.push(...JSON.parse(JSON.stringify(this.baseCinematicData.lighting)));
+
+        CINEMATIC_DATA.colors.length = 0;
+        CINEMATIC_DATA.colors.push(...JSON.parse(JSON.stringify(this.baseCinematicData.colors)));
+
+        CINEMATIC_DATA.compositions.length = 0;
+        CINEMATIC_DATA.compositions.push(...JSON.parse(JSON.stringify(this.baseCinematicData.compositions)));
+
+        // Merge custom skills (stored in DB)
+        this.customSkills = DB.get("custom_skills_v1", [
+          { id: "skill_contrast", title: "Dramatic Chiaroscuro", prompt: "Use strong light-dark contrasts, high single source side-lit keying, and deep shadow falloff." },
+          { id: "skill_anamorphic", title: "Anamorphic Cinematic Flare", prompt: "Render horizontal blue-streak lens flares, heavy bokeh, and oval defocus textures." },
+          { id: "skill_dialogue", title: "Dialogue Polisher", prompt: "Keep characters positioned in a classic OTS (Over-The-Shoulder) alignment to stress face tension." }
+        ]);
+
+        // Merge active plugin data
+        const activePlugins = this.pluginManager.getAllPlugins().filter(p => p.active);
+        
+        activePlugins.forEach(plugin => {
+          if (plugin.documentation) {
+            if (plugin.documentation.cameras) {
+              plugin.documentation.cameras.forEach(c => {
+                if (!CINEMATIC_DATA.cameras.some(existing => existing.id === c.id)) {
+                  CINEMATIC_DATA.cameras.push(c);
+                }
+              });
+            }
+            if (plugin.documentation.lenses) {
+              plugin.documentation.lenses.forEach(l => {
+                if (!CINEMATIC_DATA.lenses.some(existing => existing.mm === l.mm)) {
+                  CINEMATIC_DATA.lenses.push(l);
+                }
+              });
+            }
+            if (plugin.documentation.brands) {
+              plugin.documentation.brands.forEach(b => {
+                if (!CINEMATIC_DATA.brands.some(existing => existing.id === b.id)) {
+                  CINEMATIC_DATA.brands.push(b);
+                }
+              });
+            }
+            if (plugin.documentation.lighting) {
+              plugin.documentation.lighting.forEach(li => {
+                if (!CINEMATIC_DATA.lighting.some(existing => existing.id === li.id)) {
+                  CINEMATIC_DATA.lighting.push(li);
+                }
+              });
+            }
+            if (plugin.documentation.colors) {
+              plugin.documentation.colors.forEach(co => {
+                if (!CINEMATIC_DATA.colors.some(existing => existing.id === co.id)) {
+                  CINEMATIC_DATA.colors.push(co);
+                }
+              });
+            }
+          }
+          
+          if (plugin.promptBlocks) {
+            plugin.promptBlocks.forEach(block => {
+              if (!this.customSkills.some(existing => existing.id === block.id)) {
+                this.customSkills.push({
+                  id: block.id,
+                  title: block.title,
+                  prompt: block.prompt,
+                  pluginId: plugin.id // track plugin provenance
+                });
+              }
+            });
+          }
+        });
+
+        // Save custom skills to local storage so that other screens (like Storyboard Custom Skills) see them
+        DB.set("custom_skills_v1", this.customSkills);
+
+        // Re-render components that depend on cinematic data
+        if (typeof this.renderCustomSkills === "function") this.renderCustomSkills();
+        if (typeof this.renderDocumentation === "function") this.renderDocumentation();
+        if (typeof this.updateUIForStep === "function") this.updateUIForStep();
+        this.renderPluginSuggestedQuestions();
+      }
+
+      renderPluginSuggestedQuestions() {
+        const container = document.getElementById("copilot-quick-directives");
+        if (!container) return;
+
+        // Default ones
+        let html = `
+          <button class="btn-action" style="text-align:left; justify-content:flex-start; font-size:11px;" onclick="app.sendCopilotPreset('Optimize my current active prompt with ultra-detailed AI skin pores, texture and cinematography grading.')">✨ Optimize Active Prompt</button>
+          <button class="btn-action" style="text-align:left; justify-content:flex-start; font-size:11px;" onclick="app.sendCopilotPreset('Give me a high-stakes, low-key lighting courtroom deposition scene recipe.')">⚖️ Scene Recipe: Courtroom Deposition</button>
+          <button class="btn-action" style="text-align:left; justify-content:flex-start; font-size:11px;" onclick="app.sendCopilotPreset('Create a clinical desaturated teal modern political thriller prompt setup.')">💼 Scene Recipe: Political Intrigue</button>
+          <button class="btn-action" style="text-align:left; justify-content:flex-start; font-size:11px;" onclick="app.sendCopilotPreset('How do I setup Sony Venice 2 dual-native ISO for extremely dark noir streets with wet asphalt reflection?')">🌃 Concept: Low-Light Noir</button>
+        `;
+
+        // Load active plugins questions
+        const activePlugins = this.pluginManager.getAllPlugins().filter(p => p.active);
+        activePlugins.forEach(plugin => {
+          if (plugin.questions && plugin.questions.length > 0) {
+            plugin.questions.forEach(q => {
+              const cleanedPrompt = q.prompt.replace(/'/g, "\\'");
+              html += `
+                <button class="btn-action" style="text-align:left; justify-content:flex-start; font-size:11px; border-color: rgba(210, 164, 90, 0.3);" onclick="app.sendCopilotPreset('${cleanedPrompt}')">
+                  🔌 [${plugin.title}] ${q.text}
+                </button>
+              `;
+            });
+          }
+        });
+
+        container.innerHTML = html;
+      }
+
+      renderPluginsView() {
+        // Render plugin registry list in the left panel
+        const listContainer = document.getElementById("plugin-list-container");
+        if (!listContainer) return;
+
+        const plugins = this.pluginManager.getAllPlugins();
+        listContainer.innerHTML = "";
+
+        plugins.forEach(p => {
+          const item = document.createElement("div");
+          item.className = `agent-item-row ${this.selectedPluginId === p.id ? 'selected' : ''}`;
+          item.style.cursor = "pointer";
+          item.style.flexDirection = "column";
+          item.style.alignItems = "stretch";
+          item.style.padding = "10px 12px";
+          item.style.gap = "4px";
+          item.style.borderRadius = "6px";
+          item.style.border = this.selectedPluginId === p.id ? "1px solid var(--accent)" : "1px solid rgba(255,255,255,0.05)";
+          item.style.background = this.selectedPluginId === p.id ? "rgba(212, 164, 90, 0.05)" : "transparent";
+          item.onclick = () => {
+            this.selectedPluginId = p.id;
+            this.renderPluginsView();
+          };
+
+          item.innerHTML = `
+            <div style="display:flex; justify-content:space-between; align-items:center; width:100%;">
+              <div style="font-weight:700; font-size:12px; color:${p.active ? 'var(--accent)' : 'var(--text-muted)'}; display:flex; align-items:center; gap:6px;">
+                ${p.active ? '🟢' : '⚫'} ${p.title}
+              </div>
+              <div style="display:flex; gap:8px; align-items:center;" onclick="event.stopPropagation();">
+                <input type="checkbox" ${p.active ? 'checked' : ''} onchange="app.togglePlugin('${p.id}')" title="Toggle Active">
+                <span style="font-size:13px; color:var(--text-muted); cursor:pointer; padding:2px 6px;" title="Uninstall Plugin" onclick="app.deletePlugin('${p.id}')">✕</span>
+              </div>
+            </div>
+            <div style="font-size:10px; color:var(--text-muted); line-height:1.4; margin-top: 4px;">
+              ${p.description}
+            </div>
+            <div style="font-size:9px; font-family:var(--font-mono); color:var(--accent); margin-top:6px; display:flex; gap:8px;">
+              <span>📚 Docs: ${(p.documentation?.cameras?.length || 0) + (p.documentation?.lenses?.length || 0)}</span>
+              <span>⚡ Skills: ${p.promptBlocks?.length || 0}</span>
+              <span>⚖️ Rules: ${p.rules?.length || 0}</span>
+            </div>
+          `;
+          listContainer.appendChild(item);
+        });
+
+        // Render current workspace details
+        const workspace = document.getElementById("plugin-details-workspace");
+        if (!workspace) return;
+
+        const selected = this.pluginManager.getPlugin(this.selectedPluginId);
+        if (!selected) {
+          workspace.innerHTML = `
+            <div style="text-align: center; color: var(--text-muted); margin-top: 40px; font-family: var(--font-mono);">
+              <span style="font-size: 40px; display: block; margin-bottom: 16px;">🔌</span>
+              Select an installed plugin from the registry list on the left to inspect its parameters, or create/import a new plugin.
+            </div>
+          `;
+          return;
+        }
+
+        // Build active editing workspace
+        workspace.innerHTML = `
+          <div style="background-color: var(--bg-deep); padding: 16px; border: 1px solid var(--border-color); border-radius: 8px;">
+            <span style="font-family: var(--font-mono); font-size: 10px; color: var(--accent); letter-spacing: 1px; font-weight: 700; display: block; margin-bottom: 8px;">🔌 ID: ${selected.id}</span>
+            
+            <div style="display:grid; grid-template-columns: 1fr; gap:12px; margin-top:12px;">
+              <div class="custom-input-group">
+                <span class="field-label">Plugin Title</span>
+                <input type="text" id="edit-plugin-title" class="input-text" value="${selected.title}">
+              </div>
+              <div class="custom-input-group" style="margin-top: 8px;">
+                <span class="field-label">Short Description</span>
+                <input type="text" id="edit-plugin-desc" class="input-text" value="${selected.description}">
+              </div>
+            </div>
+          </div>
+
+          <!-- Section : Prompt Blocks / Custom Skills -->
+          <div style="border-top: 1px solid var(--border-color); padding-top: 16px; margin-top: 16px;">
+            <h4 style="font-size:12px; font-family: var(--font-mono); color:var(--accent); margin-bottom:12px; display:flex; justify-content:space-between; align-items: center;">
+              <span>⚡ PROMPT BLOCKS (CUSTOM SKILLS)</span>
+              <button class="btn-action primary" style="font-size:9px; padding:2px 8px;" onclick="app.addPluginPromptBlockForm()">＋ Add Block</button>
+            </h4>
+            <div style="display:flex; flex-direction:column; gap:8px;" id="plugin-blocks-list">
+              ${selected.promptBlocks.map((block, idx) => `
+                <div style="background:#131318; border:1px solid rgba(255,255,255,0.05); padding:10px; border-radius:6px; display:flex; justify-content:space-between; align-items:start;">
+                  <div style="display:flex; flex-direction:column; gap:4px; max-width:85%;">
+                    <span style="font-weight:700; font-size:11px; color:#ffffff;">${block.title} <span style="font-size:9px; color:var(--text-muted);">(${block.id})</span></span>
+                    <span style="font-family:var(--font-mono); font-size:10px; color:var(--text-muted); word-break:break-all;">${block.prompt}</span>
+                  </div>
+                  <button class="btn-action danger" style="font-size:9px; padding:2px 6px;" onclick="app.removePluginPromptBlock(${idx})">Delete</button>
+                </div>
+              `).join('')}
+              ${selected.promptBlocks.length === 0 ? `<div style="font-size:10px; color:var(--text-muted); font-style:italic;">No custom skills defined.</div>` : ''}
+            </div>
+          </div>
+
+          <!-- Section : Questions -->
+          <div style="border-top: 1px solid var(--border-color); padding-top: 16px; margin-top: 16px;">
+            <h4 style="font-size:12px; font-family: var(--font-mono); color:var(--accent); margin-bottom:12px; display:flex; justify-content:space-between; align-items: center;">
+              <span>⚖️ COPILOT PRESET QUESTIONS</span>
+              <button class="btn-action primary" style="font-size:9px; padding:2px 8px;" onclick="app.addPluginQuestionForm()">＋ Add Question</button>
+            </h4>
+            <div style="display:flex; flex-direction:column; gap:8px;" id="plugin-questions-list">
+              ${selected.questions.map((q, idx) => `
+                <div style="background:#131318; border:1px solid rgba(255,255,255,0.05); padding:10px; border-radius:6px; display:flex; justify-content:space-between; align-items:start;">
+                  <div style="display:flex; flex-direction:column; gap:4px; max-width:85%;">
+                    <span style="font-weight:700; font-size:11px; color:#ffffff;">${q.text}</span>
+                    <span style="font-size:10px; color:var(--text-muted);">${q.prompt}</span>
+                  </div>
+                  <button class="btn-action danger" style="font-size:9px; padding:2px 6px;" onclick="app.removePluginQuestion(${idx})">Delete</button>
+                </div>
+              `).join('')}
+              ${selected.questions.length === 0 ? `<div style="font-size:10px; color:var(--text-muted); font-style:italic;">No preset questions defined.</div>` : ''}
+            </div>
+          </div>
+
+          <!-- Section : Rules -->
+          <div style="border-top: 1px solid var(--border-color); padding-top: 16px; margin-top: 16px;">
+            <h4 style="font-size:12px; font-family: var(--font-mono); color:var(--accent); margin-bottom:12px; display:flex; justify-content:space-between; align-items: center;">
+              <span>📜 CO-PILOT GUIDANCE RULES</span>
+              <button class="btn-action primary" style="font-size:9px; padding:2px 8px;" onclick="app.addPluginRuleForm()">＋ Add Rule</button>
+            </h4>
+            <div style="display:flex; flex-direction:column; gap:8px;" id="plugin-rules-list">
+              ${selected.rules.map((rule, idx) => `
+                <div style="background:#131318; border:1px solid rgba(255,255,255,0.05); padding:10px; border-radius:6px; display:flex; justify-content:space-between; align-items:center;">
+                  <span style="font-size:11px; color:#ffffff; max-width:85%;">• ${rule}</span>
+                  <button class="btn-action danger" style="font-size:9px; padding:2px 6px;" onclick="app.removePluginRule(${idx})">Delete</button>
+                </div>
+              `).join('')}
+              ${selected.rules.length === 0 ? `<div style="font-size:10px; color:var(--text-muted); font-style:italic;">No custom rules defined.</div>` : ''}
+            </div>
+          </div>
+
+          <!-- Section : Documentation -->
+          <div style="border-top: 1px solid var(--border-color); padding-top: 16px; margin-top: 16px;">
+            <h4 style="font-size:12px; font-family: var(--font-mono); color:var(--accent); margin-bottom:12px;">📚 CUSTOM DOCUMENTATION (CINEMATIC BIBLE INTEGRATION)</h4>
+            
+            <div style="display:flex; flex-direction:column; gap:12px; margin-top:8px;">
+              <!-- Cameras -->
+              <div style="background:#131318; padding:12px; border-radius:6px; border:1px solid rgba(255,255,255,0.03);">
+                <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">
+                  <span style="font-size:11px; font-weight:700; color:var(--accent);">🎥 Cameras (${selected.documentation.cameras.length})</span>
+                  <button class="btn-action primary" style="font-size:8px; padding:2px 6px;" onclick="app.addPluginCameraForm()">＋ Add</button>
+                </div>
+                <div style="display:flex; flex-direction:column; gap:6px;">
+                  ${selected.documentation.cameras.map((c, idx) => `
+                    <div style="font-size:10px; display:flex; justify-content:space-between; border-bottom:1px solid rgba(255,255,255,0.02); padding-bottom:4px;">
+                      <span><strong>${c.name}</strong> - ${c.visual.substring(0, 50)}...</span>
+                      <span style="color:var(--text-muted); cursor:pointer;" onclick="app.removePluginDocItem('cameras', ${idx})">✕</span>
+                    </div>
+                  `).join('')}
+                </div>
+              </div>
+
+              <!-- Lenses -->
+              <div style="background:#131318; padding:12px; border-radius:6px; border:1px solid rgba(255,255,255,0.03);">
+                <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">
+                  <span style="font-size:11px; font-weight:700; color:var(--accent);">🔍 Lenses (${selected.documentation.lenses.length})</span>
+                  <button class="btn-action primary" style="font-size:8px; padding:2px 6px;" onclick="app.addPluginLensForm()">＋ Add</button>
+                </div>
+                <div style="display:flex; flex-direction:column; gap:6px;">
+                  ${selected.documentation.lenses.map((l, idx) => `
+                    <div style="font-size:10px; display:flex; justify-content:space-between; border-bottom:1px solid rgba(255,255,255,0.02); padding-bottom:4px;">
+                      <span><strong>${l.mm} ${l.name}</strong> - ${l.perspective.substring(0, 50)}...</span>
+                      <span style="color:var(--text-muted); cursor:pointer;" onclick="app.removePluginDocItem('lenses', ${idx})">✕</span>
+                    </div>
+                  `).join('')}
+                </div>
+              </div>
+
+              <!-- Brands -->
+              <div style="background:#131318; padding:12px; border-radius:6px; border:1px solid rgba(255,255,255,0.03);">
+                <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">
+                  <span style="font-size:11px; font-weight:700; color:var(--accent);">💎 Glass Brands (${selected.documentation.brands.length})</span>
+                  <button class="btn-action primary" style="font-size:8px; padding:2px 6px;" onclick="app.addPluginBrandForm()">＋ Add</button>
+                </div>
+                <div style="display:flex; flex-direction:column; gap:6px;">
+                  ${selected.documentation.brands.map((b, idx) => `
+                    <div style="font-size:10px; display:flex; justify-content:space-between; border-bottom:1px solid rgba(255,255,255,0.02); padding-bottom:4px;">
+                      <span><strong>${b.name}</strong> - ${b.visual.substring(0, 50)}...</span>
+                      <span style="color:var(--text-muted); cursor:pointer;" onclick="app.removePluginDocItem('brands', ${idx})">✕</span>
+                    </div>
+                  `).join('')}
+                </div>
+              </div>
+
+              <!-- Lighting -->
+              <div style="background:#131318; padding:12px; border-radius:6px; border:1px solid rgba(255,255,255,0.03);">
+                <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">
+                  <span style="font-size:11px; font-weight:700; color:var(--accent);">💡 Lighting Styles (${selected.documentation.lighting.length})</span>
+                  <button class="btn-action primary" style="font-size:8px; padding:2px 6px;" onclick="app.addPluginLightingForm()">＋ Add</button>
+                </div>
+                <div style="display:flex; flex-direction:column; gap:6px;">
+                  ${selected.documentation.lighting.map((l, idx) => `
+                    <div style="font-size:10px; display:flex; justify-content:space-between; border-bottom:1px solid rgba(255,255,255,0.02); padding-bottom:4px;">
+                      <span><strong>${l.name}</strong> - ${l.purpose.substring(0, 50)}...</span>
+                      <span style="color:var(--text-muted); cursor:pointer;" onclick="app.removePluginDocItem('lighting', ${idx})">✕</span>
+                    </div>
+                  `).join('')}
+                </div>
+              </div>
+
+              <!-- Colors -->
+              <div style="background:#131318; padding:12px; border-radius:6px; border:1px solid rgba(255,255,255,0.03);">
+                <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">
+                  <span style="font-size:11px; font-weight:700; color:var(--accent);">🎨 Color Science & Stocks (${selected.documentation.colors.length})</span>
+                  <button class="btn-action primary" style="font-size:8px; padding:2px 6px;" onclick="app.addPluginColorForm()">＋ Add</button>
+                </div>
+                <div style="display:flex; flex-direction:column; gap:6px;">
+                  ${selected.documentation.colors.map((c, idx) => `
+                    <div style="font-size:10px; display:flex; justify-content:space-between; border-bottom:1px solid rgba(255,255,255,0.02); padding-bottom:4px;">
+                      <span><strong>${c.name}</strong> - ${c.visual.substring(0, 50)}...</span>
+                      <span style="color:var(--text-muted); cursor:pointer;" onclick="app.removePluginDocItem('colors', ${idx})">✕</span>
+                    </div>
+                  `).join('')}
+                </div>
+              </div>
+            </div>
+          </div>
+        `;
+      }
+
+      createNewPlugin() {
+        const id = "custom_" + Date.now();
+        const title = prompt("Name of the new plugin:", "My Custom Cinema Pack");
+        if (!title) return;
+        
+        const newPlugin = {
+          id: id,
+          title: title,
+          description: "Description of your new creative pack extension.",
+          active: true,
+          questions: [],
+          documentation: {
+            cameras: [],
+            lenses: [],
+            brands: [],
+            lighting: [],
+            colors: []
+          },
+          rules: [],
+          promptBlocks: []
+        };
+
+        this.pluginManager.plugins.push(newPlugin);
+        this.pluginManager.save();
+        this.selectedPluginId = id;
+        this.reloadCoreData();
+        this.renderPluginsView();
+        this.logTerminal(`[PLUGIN] Created custom plugin: "${title}"`);
+      }
+
+      togglePlugin(id) {
+        this.pluginManager.togglePlugin(id);
+        this.renderPluginsView();
+      }
+
+      deletePlugin(id) {
+        if (confirm("Are you sure you want to uninstall this plugin?")) {
+          this.pluginManager.deletePlugin(id);
+          if (this.selectedPluginId === id) this.selectedPluginId = null;
+          this.renderPluginsView();
+        }
+      }
+
+      exportSelectedPlugin() {
+        const selected = this.pluginManager.getPlugin(this.selectedPluginId);
+        if (!selected) return;
+
+        const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(selected, null, 2));
+        const dlAnchorElem = document.createElement('a');
+        dlAnchorElem.setAttribute("href", dataStr);
+        dlAnchorElem.setAttribute("download", `${selected.id}.skill.json`);
+        dlAnchorElem.click();
+        this.logTerminal(`[PLUGIN] Exported plugin data file for "${selected.title}"`);
+      }
+
+      saveSelectedPluginChanges() {
+        const selected = this.pluginManager.getPlugin(this.selectedPluginId);
+        if (!selected) return;
+
+        const titleInput = document.getElementById("edit-plugin-title");
+        const descInput = document.getElementById("edit-plugin-desc");
+
+        if (titleInput) selected.title = titleInput.value.trim();
+        if (descInput) selected.description = descInput.value.trim();
+
+        this.pluginManager.save();
+        this.reloadCoreData();
+        this.renderPluginsView();
+        this.logTerminal(`[PLUGIN] Saved changes to "${selected.title}"`);
+        alert("Plugin specifications updated successfully! Rebuilt Core assembly.");
+      }
+
+      importPluginFromText() {
+        const area = document.getElementById("plugin-import-textarea");
+        if (!area || !area.value.trim()) return;
+
+        const res = this.pluginManager.importPlugin(area.value.trim());
+        if (res.success) {
+          this.selectedPluginId = res.plugin.id;
+          area.value = "";
+          this.renderPluginsView();
+          alert(`Successfully installed plugin pack "${res.plugin.title}"!`);
+        } else {
+          alert(`Installation error: ${res.error}`);
+        }
+      }
+
+      getMasterPluginTemplate() {
+        return {
+          "id": "vintage_noir_extension",
+          "title": "Vintage Noir & Neon (1950s)",
+          "description": "Adds anamorphic lens flares, high-contrast chiaroscuro shadows, and saturated neon cinematic guidelines.",
+          "active": true,
+          "questions": [
+            {
+              "text": "Noir Wet Street Setup",
+              "prompt": "How do I configure camera settings for wet night streets with neon sign reflections?"
+            },
+            {
+              "text": "Vintage Lens Flares Guide",
+              "prompt": "Explain the anamorphic streak effects and lens flares in 1950s widescreen cinema."
+            }
+          ],
+          "documentation": {
+            "cameras": [
+              {
+                "id": "panavision_auto_35",
+                "name": "Panavision Auto Panatar (vintage)",
+                "visual": "Heavy horizontal lens flare, warm organic highlight blooming, classic anamorphic oval bokeh.",
+                "history": "Introduced in the late 1950s to compete with CinemaScope, delivering warm organic tones.",
+                "strengths": "Exceptional portrait realism and glamorous skin textures with natural micro-contrast.",
+                "weaknesses": "Slight chromatic aberration on extreme edges.",
+                "best": "Anamorphic widescreen cinematic setups, night neon streets.",
+                "examples": "Classic 1950s widescreen thrillers"
+              }
+            ],
+            "lenses": [
+              {
+                "mm": "50mm",
+                "name": "50mm Panatar f/1.4",
+                "perspective": "Widescreen anamorphic spatial compression, beautifully wide fields of view with shallow portrait depth.",
+                "examples": "Perfect for low-light medium shots capturing wet street environments."
+              }
+            ],
+            "brands": [
+              {
+                "id": "panavision_classic",
+                "name": "Panavision Classic Anamorphics",
+                "visual": "Horizontal blue-streak flares, cylindrical optical characteristics, romantic oval bokeh."
+              }
+            ],
+            "lighting": [
+              {
+                "id": "neon_chiaroscuro",
+                "name": "Saturated Neon Chiaroscuro",
+                "purpose": "A heavy dark-light shadow play accented by vibrant magenta/cyan neon edge-lighting from behind.",
+                "examples": "Cyberpunk or 1950s neo-noir night scenes."
+              }
+            ],
+            "colors": [
+              {
+                "id": "kodachrome_vintage",
+                "name": "Classic Kodachrome 64 Profile",
+                "visual": "Deep saturated reds and yellows, fine grain structure, high shadow contrast with rich contrast roll-off."
+              }
+            ]
+          },
+          "rules": [
+            "Always include horizontal lens flares in dark scenes with bright light sources.",
+            "Use deep high-contrast lighting (Chiaroscuro) to carve out subjects in misty streets.",
+            "Prefer 2.39:1 anamorphic widescreen framing for all storyboard compositions."
+          ],
+          "promptBlocks": [
+            {
+              "id": "skill_neon_glow",
+              "title": "Neon Edge Highlights",
+              "prompt": "Intense magenta and teal neon backlighting, high-contrast night shadows, wet asphalt reflections."
+            },
+            {
+              "id": "skill_vintage_streak",
+              "title": "Anamorphic Blue Streak",
+              "prompt": "Authentic horizontal blue streak lens flares, vintage optical halation, cinematic warm highlights."
+            }
+          ]
+        };
+      }
+
+      downloadMasterPluginTemplate() {
+        const template = this.getMasterPluginTemplate();
+        const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(template, null, 2));
+        const dlAnchorElem = document.createElement('a');
+        dlAnchorElem.setAttribute("href", dataStr);
+        dlAnchorElem.setAttribute("download", "master_plugin_template.json");
+        dlAnchorElem.click();
+        this.logTerminal("[PLUGIN] Downloaded master plugin template JSON file.");
+      }
+
+      fillMasterPluginTemplateToTextarea() {
+        const area = document.getElementById("plugin-import-textarea");
+        if (area) {
+          area.value = JSON.stringify(this.getMasterPluginTemplate(), null, 2);
+          this.logTerminal("[PLUGIN] Loaded master template structure into the import area.");
+        }
+      }
+
+      addPluginPromptBlockForm() {
+        const selected = this.pluginManager.getPlugin(this.selectedPluginId);
+        if (!selected) return;
+
+        const title = prompt("Name of the Prompt Block (e.g., Vintage Glow):");
+        if (!title) return;
+        const promptText = prompt("Prompt block content directives:");
+        if (!promptText) return;
+
+        selected.promptBlocks.push({
+          id: "block_" + Date.now(),
+          title: title,
+          prompt: promptText
+        });
+
+        this.pluginManager.save();
+        this.reloadCoreData();
+        this.renderPluginsView();
+      }
+
+      removePluginPromptBlock(idx) {
+        const selected = this.pluginManager.getPlugin(this.selectedPluginId);
+        if (!selected) return;
+        selected.promptBlocks.splice(idx, 1);
+        this.pluginManager.save();
+        this.reloadCoreData();
+        this.renderPluginsView();
+      }
+
+      addPluginQuestionForm() {
+        const selected = this.pluginManager.getPlugin(this.selectedPluginId);
+        if (!selected) return;
+
+        const text = prompt("Quick question label to display in Co-pilot (e.g., Rules of Technicolor):");
+        if (!text) return;
+        const promptText = prompt("Full prompt query message sent to Co-pilot upon clicking:");
+        if (!promptText) return;
+
+        selected.questions.push({ text, prompt: promptText });
+        this.pluginManager.save();
+        this.reloadCoreData();
+        this.renderPluginsView();
+      }
+
+      removePluginQuestion(idx) {
+        const selected = this.pluginManager.getPlugin(this.selectedPluginId);
+        if (!selected) return;
+        selected.questions.splice(idx, 1);
+        this.pluginManager.save();
+        this.reloadCoreData();
+        this.renderPluginsView();
+      }
+
+      addPluginRuleForm() {
+        const selected = this.pluginManager.getPlugin(this.selectedPluginId);
+        if (!selected) return;
+
+        const rule = prompt("Enter guidance rule (e.g., Enforce high contrast cinematic ratios):");
+        if (!rule) return;
+
+        selected.rules.push(rule);
+        this.pluginManager.save();
+        this.reloadCoreData();
+        this.renderPluginsView();
+      }
+
+      removePluginRule(idx) {
+        const selected = this.pluginManager.getPlugin(this.selectedPluginId);
+        if (!selected) return;
+        selected.rules.splice(idx, 1);
+        this.pluginManager.save();
+        this.reloadCoreData();
+        this.renderPluginsView();
+      }
+
+      addPluginCameraForm() {
+        const selected = this.pluginManager.getPlugin(this.selectedPluginId);
+        if (!selected) return;
+
+        const name = prompt("Camera Name (e.g., Panavision 70mm):");
+        if (!name) return;
+        const visual = prompt("Visual Signature (sensor profile, grain, color balance):");
+        if (!visual) return;
+        const history = prompt("Historical Context:");
+        const strengths = prompt("Strengths / Highlight roll-off:");
+        const weaknesses = prompt("Weaknesses:");
+        const best = prompt("Best used for:");
+        const examples = prompt("Movie Examples:");
+
+        const id = "cam_" + Date.now();
+        selected.documentation.cameras.push({
+          id, name, visual, history: history || "", strengths: strengths || "", weaknesses: weaknesses || "", best: best || "", examples: examples || ""
+        });
+
+        this.pluginManager.save();
+        this.reloadCoreData();
+        this.renderPluginsView();
+      }
+
+      addPluginLensForm() {
+        const selected = this.pluginManager.getPlugin(this.selectedPluginId);
+        if (!selected) return;
+
+        const mm = prompt("Focal Length (e.g., 65mm):");
+        if (!mm) return;
+        const name = prompt("Lens Name (e.g., 65mm Cinema Prime):");
+        if (!name) return;
+        const perspective = prompt("Spatial compression / optical profiling:");
+        const examples = prompt("Scene context examples:");
+
+        selected.documentation.lenses.push({
+          mm, name, perspective: perspective || "", examples: examples || ""
+        });
+
+        this.pluginManager.save();
+        this.reloadCoreData();
+        this.renderPluginsView();
+      }
+
+      addPluginBrandForm() {
+        const selected = this.pluginManager.getPlugin(this.selectedPluginId);
+        if (!selected) return;
+
+        const name = prompt("Optical Brand (e.g., Kowa Anamorphic):");
+        if (!name) return;
+        const visual = prompt("Anamorphic/Flare rendering description:");
+
+        selected.documentation.brands.push({
+          id: "brand_" + Date.now(), name, visual: visual || ""
+        });
+
+        this.pluginManager.save();
+        this.reloadCoreData();
+        this.renderPluginsView();
+      }
+
+      addPluginLightingForm() {
+        const selected = this.pluginManager.getPlugin(this.selectedPluginId);
+        if (!selected) return;
+
+        const name = prompt("Lighting Scheme Name (e.g., Rembrandt side-key):");
+        if (!name) return;
+        const purpose = prompt("Aesthetic intent / description:");
+        const examples = prompt("Movie scene references:");
+
+        selected.documentation.lighting.push({
+          id: "light_" + Date.now(), name, purpose: purpose || "", examples: examples || ""
+        });
+
+        this.pluginManager.save();
+        this.reloadCoreData();
+        this.renderPluginsView();
+      }
+
+      addPluginColorForm() {
+        const selected = this.pluginManager.getPlugin(this.selectedPluginId);
+        if (!selected) return;
+
+        const name = prompt("Color Stock / Grade Name (e.g., Kodachrome 64):");
+        if (!name) return;
+        const visual = prompt("Color representation description:");
+
+        selected.documentation.colors.push({
+          id: "col_" + Date.now(), name, visual: visual || ""
+        });
+
+        this.pluginManager.save();
+        this.reloadCoreData();
+        this.renderPluginsView();
+      }
+
+      removePluginDocItem(category, idx) {
+        const selected = this.pluginManager.getPlugin(this.selectedPluginId);
+        if (!selected) return;
+
+        selected.documentation[category].splice(idx, 1);
+        this.pluginManager.save();
+        this.reloadCoreData();
+        this.renderPluginsView();
       }
 
       initSettings() {
@@ -2588,7 +3581,136 @@
           this.renderDocumentation();
         } else if (screenId === "storyboard") {
           this.initStoryboardWorkspace();
+        } else if (screenId === "plugins") {
+          this.renderPluginsView();
         }
+      }
+
+      showHelp(topic) {
+        let title = "";
+        let content = "";
+        
+        switch (topic) {
+          case 'chalkboard':
+            title = "Chalkboard Infini 🗺️";
+            content = `
+              <p>Le <strong>Chalkboard</strong> (tableau d'idées infini) vous permet d'organiser vos personnages (👤), accessoires (📦) et lieux (🗺️) dans un espace 2D.</p>
+              <ul style="margin-left: 20px; margin-top: 10px; display:flex; flex-direction:column; gap:6px;">
+                <li><strong>Déplacement :</strong> Faites un clic gauche sur le fond noir et glissez pour naviguer à l'infini sur le tableau.</li>
+                <li><strong>Sélection :</strong> Cliquez sur une carte pour voir et modifier ses détails dans l'Inspecteur (à droite).</li>
+                <li><strong>Générations :</strong> Dans l'Inspecteur, générez une image ou vidéo IA pour cette carte, ou connectez-la à vos agents et n8n.</li>
+              </ul>
+            `;
+            break;
+          case 'googleflow':
+            title = "Pipeline ⚡ Google Flow PRO";
+            content = `
+              <p>Le <strong>Google Flow</strong> est un pipeline séquentiel reliant vos plans de caméra pour créer une séquence vidéo fluide.</p>
+              <ul style="margin-left: 20px; margin-top: 10px; display:flex; flex-direction:column; gap:8px;">
+                <li><strong>Comment ça marche ?</strong> Chaque carte est un plan cinématographique. Cliquez sur <strong>"▶ Play Flow Sequence"</strong> pour voir l'enchaînement en direct avec sous-titres !</li>
+                <li><strong>Où retrouver les images et vidéos produites ?</strong> Lorsqu'un plan génère une image ou une vidéo IA, elle s'affiche <strong>directement sur la carte de plan</strong> dans ce pipeline. Vos créations sont enregistrées de façon persistante dans votre navigateur. Vous pouvez également cliquer sur <strong>"Export Script"</strong> pour exporter tout votre scénario !</li>
+                <li><strong>Connexion avec Google Flow / Google Workspace ?</strong> 
+                  <span style="color:var(--accent); font-weight:bold;">Absolument !</span> Grâce à l'intégration OAuth Google Workspace (gérable via 'Studio Settings' ou le bouton d'autorisation), vous pouvez connecter l'application pour synchroniser et envoyer automatiquement vos créations et scripts vers votre <strong>Google Drive</strong>, rédiger un document <strong>Google Docs</strong> ou les exporter en ligne !
+                </li>
+              </ul>
+            `;
+            break;
+          case 'builder':
+            title = "Constructeur de Prompt ✍️";
+            content = `
+              <p>Élaborez des prompts complexes et structurés pour les moteurs IA (Midjourney, Flux, Stable Diffusion, Runway, Veo, etc.).</p>
+              <ul style="margin-left: 20px; margin-top: 10px; display:flex; flex-direction:column; gap:6px;">
+                <li><strong>Bibliothèques :</strong> Explorez et cliquez sur "Ajouter" pour intégrer instantanément des types de caméras, d'objectifs, d'éclairages et de styles.</li>
+                <li><strong>Mise à jour :</strong> Le prompt se compile en temps réel au bas de l'écran.</li>
+              </ul>
+            `;
+            break;
+          case 'viewfinder':
+            title = "Viseur & Prévisualisation 🎬";
+            content = `
+              <p>Le <strong>Viewfinder</strong> simule l'optique et le cadre de caméras cinéma réelles.</p>
+              <ul style="margin-left: 20px; margin-top: 10px; display:flex; flex-direction:column; gap:6px;">
+                <li><strong>Format (Ratios) :</strong> Choisissez entre le Cinémascope large (2.39:1), le standard 16:9, ou le vertical 9:16 (idéal pour smartphones).</li>
+                <li><strong>Règle des tiers :</strong> Activez la grille pour soigner votre composition géométrique.</li>
+                <li><strong>Sketch IA :</strong> Cliquez sur <strong>"SKETCH"</strong> pour générer instantanément un dessin vectoriel de la scène décrite !</li>
+              </ul>
+            `;
+            break;
+          case 'copilot':
+            title = "Director Co-Pilot & Chat 🤖";
+            content = `
+              <p>Discutez avec des IA expertes de l'image pour affiner vos choix de direction technique.</p>
+              <ul style="margin-left: 20px; margin-top: 10px; display:flex; flex-direction:column; gap:6px;">
+                <li><strong>Conseils de Pro :</strong> Posez vos questions sur les réglages de caméras, la gestion de la lumière ou la colorimétrie.</li>
+                <li><strong>Synchro Directe :</strong> Utilisez les boutons de synchronisation dans le chat pour injecter directement les suggestions de l'IA dans vos prompts actifs !</li>
+              </ul>
+            `;
+            break;
+          case 'inspector':
+            title = "Card Inspector & Terminal 🕵️";
+            content = `
+              <p>L'<strong>Inspecteur de Carte</strong> affiche les détails complets de l'élément sélectionné sur le chalkboard.</p>
+              <ul style="margin-left: 20px; margin-top: 10px; display:flex; flex-direction:column; gap:6px;">
+                <li>Modifiez le nom, la description ou le type de l'élément à chaud.</li>
+                <li><strong>Logs Terminal :</strong> Suivez les flux de données brutes, JSON, et jetons envoyés aux webhooks d'automatisation.</li>
+              </ul>
+            `;
+            break;
+          case 'bible':
+            title = "Cinematic Bible 📚";
+            content = `
+              <p>Une encyclopédie cinématographique intégrée au studio.</p>
+              <ul style="margin-left: 20px; margin-top: 10px; display:flex; flex-direction:column; gap:6px;">
+                <li>Parcourez les fiches techniques des meilleures caméras (Arri Alexa, Sony Venice), des marques d'objectifs mythiques (Zeiss, Cooke, Leica), et apprenez la science de l'éclairage et de la pellicule.</li>
+              </ul>
+            `;
+            break;
+          case 'plugins':
+            title = "Plugin Engine & Custom Extensibility 🔌";
+            content = `
+              <p>Le <strong>Plugin Engine</strong> vous permet d'étendre la plateforme sans toucher au Core. Les plugins chargent des questions d'aide, de la documentation pour la Cinematic Bible, des règles pour le Director Co-Pilot et des promptBlocks (compétences).</p>
+              <ul style="margin-left: 20px; margin-top: 10px; display:flex; flex-direction:column; gap:6px;">
+                <li><strong>Activations :</strong> Activez ou désactivez les packs d'extension d'un simple clic pour moduler les connaissances du studio.</li>
+                <li><strong>Core + Plugin :</strong> Le Core assemble automatiquement la documentation et les règles des plugins actifs pour guider l'IA Co-Pilot.</li>
+                <li><strong>Imports & Exports :</strong> Installez des packs tiers en important leur JSON ou exportez vos créations sur mesure.</li>
+              </ul>
+            `;
+            break;
+          default:
+            title = "Guide d'Aide 💡";
+            content = "<p>Cliquez sur les icônes '?' à côté des titres de modules pour comprendre comment chaque outil fonctionne.</p>";
+        }
+
+        // Create elegant, premium high-contrast help modal
+        const overlay = document.createElement("div");
+        overlay.style.position = "fixed";
+        overlay.style.top = "0";
+        overlay.style.left = "0";
+        overlay.style.width = "100%";
+        overlay.style.height = "100%";
+        overlay.style.backgroundColor = "rgba(5, 5, 8, 0.94)";
+        overlay.style.zIndex = "3000";
+        overlay.style.display = "flex";
+        overlay.style.alignItems = "center";
+        overlay.style.justifyContent = "center";
+        overlay.style.padding = "20px";
+        overlay.style.backdropFilter = "blur(12px)";
+
+        overlay.innerHTML = `
+          <div style="background-color:#121217; border:2px solid var(--accent); border-radius:12px; width:100%; max-width:550px; display:flex; flex-direction:column; overflow:hidden; box-shadow:0 30px 70px rgba(0,0,0,0.95); animation: stepFadeIn 0.25s cubic-bezier(0.16, 1, 0.3, 1);">
+            <div style="padding:16px 20px; background-color:#0b0b0e; border-bottom:1px solid var(--border-color); display:flex; justify-content:space-between; align-items:center;">
+              <span style="font-family:var(--font-mono); font-size:11px; font-weight:800; color:var(--accent); letter-spacing:1px; display:flex; align-items:center; gap:8px;">💡 CONSEIL DE STUDIO : ${title}</span>
+              <span style="cursor:pointer; color:var(--text-muted); font-size:20px; font-weight:700; transition: color 0.2s;" onclick="this.closest('[style*=\\'fixed\\']').remove()" onmouseover="this.style.color='#ffffff'" onmouseout="this.style.color='var(--text-muted)'">✕</span>
+            </div>
+            <div style="padding:24px 28px; font-family:var(--font-sans); font-size:13.5px; color:#f0f0f5; background-color:#121216; line-height:1.7; display:flex; flex-direction:column; gap:14px;">
+              ${content}
+            </div>
+            <div style="padding:16px 20px; background-color:#0b0b0e; border-top:1px solid var(--border-color); display:flex; justify-content:flex-end;">
+              <button class="btn-action primary" style="font-size:11px; padding:6px 20px; border-radius:4px;" onclick="this.closest('[style*=\\'fixed\\']').remove()">J'AI COMPRIS !</button>
+            </div>
+          </div>
+        `;
+        document.body.appendChild(overlay);
       }
 
       startNewPrompt() {
@@ -3796,6 +4918,55 @@
         let reply = "";
         let sync = null;
         
+        // 1. Check active plugins for matching questions or keywords
+        const activePlugins = this.pluginManager.getAllPlugins().filter(p => p.active);
+        for (const plugin of activePlugins) {
+          if (plugin.questions) {
+            for (const pq of plugin.questions) {
+              if (q.includes(pq.text.toLowerCase()) || q.includes(pq.prompt.toLowerCase()) || pq.prompt.toLowerCase().includes(q)) {
+                // Match found! Respond using the plugin's details
+                reply = `🔌 [ACTIVE PLUGIN: ${plugin.title}]\n\n${pq.prompt}\n\n${plugin.description}\n\nHere are the recommended active parameters according to this plugin's specifications:\n`;
+                
+                let syncData = {};
+                if (plugin.documentation) {
+                  if (plugin.documentation.cameras && plugin.documentation.cameras.length > 0) {
+                    syncData.camera = plugin.documentation.cameras[0].id;
+                    reply += `• Camera: ${plugin.documentation.cameras[0].name}\n`;
+                  }
+                  if (plugin.documentation.lenses && plugin.documentation.lenses.length > 0) {
+                    syncData.lens = plugin.documentation.lenses[0].mm;
+                    reply += `• Lens: ${plugin.documentation.lenses[0].name}\n`;
+                  }
+                  if (plugin.documentation.lighting && plugin.documentation.lighting.length > 0) {
+                    syncData.lighting = plugin.documentation.lighting[0].id;
+                    reply += `• Lighting: ${plugin.documentation.lighting[0].name}\n`;
+                  }
+                  if (plugin.documentation.colors && plugin.documentation.colors.length > 0) {
+                    syncData.color = plugin.documentation.colors[0].id;
+                    reply += `• Grade: ${plugin.documentation.colors[0].name}\n`;
+                  }
+                }
+                
+                if (plugin.rules && plugin.rules.length > 0) {
+                  reply += `\nACTIVE PLUGIN RULES LOADED:\n${plugin.rules.map(r => `- ${r}`).join('\n')}`;
+                }
+
+                this.copilotMessages.push({
+                  sender: "ai",
+                  text: reply,
+                  time: new Date().toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'}),
+                  syncData: Object.keys(syncData).length > 0 ? syncData : null
+                });
+                
+                this.renderCopilotChat();
+                this.syncCopilotMonitor();
+                return;
+              }
+            }
+          }
+        }
+
+        // 2. Default logic
         if (q.includes("optimize") || q.includes("skin") || q.includes("pores") || q.includes("realism")) {
           reply = "Understood. Re-structuring the cinematography telemetry. Generative AI models struggle with smooth, flat plastic faces due to noise reduction filters.\n\nI am injecting high-contrast micro-textures: 'Natural skin textures', 'Visible pores', and 'Camera lens dust particles'. We will pair this with ARRI Alexa's high highlight roll-off and a Cooke vintage Panchro lens to break down modern digital sterile clarity. High-contrast Rim Lighting is configured to separate the protagonist from dark corporate walls.";
           sync = {
@@ -4466,8 +5637,8 @@
                 <span class="field-label" style="font-size:10px;">COMPUTE ENGINES</span>
                 
                 <div style="display:grid; grid-template-columns:1fr 1fr; gap:8px;">
-                  <button class="btn-action primary" style="font-size:10px; padding:6px; border-color:var(--accent); color:var(--accent); font-weight:600;" onclick="app.generateFlowShotImage('${shot.id}')">🎨 Gen AI Image</button>
-                  <button class="btn-action primary" style="font-size:10px; padding:6px; border-color:#49c490; color:#49c490; font-weight:600;" onclick="app.generateFlowShotVideo('${shot.id}')">🎬 Gen AI Video</button>
+                  <button class="btn-action primary" style="font-size:10px; padding:6px; border-color:var(--accent); color:#000000; font-weight:600;" onclick="app.generateFlowShotImage('${shot.id}')">🎨 Gen AI Image</button>
+                  <button class="btn-action primary" style="font-size:10px; padding:6px; border-color:#49c490; color:#000000; font-weight:600;" onclick="app.generateFlowShotVideo('${shot.id}')">🎬 Gen AI Video</button>
                 </div>
               </div>
             </div>
@@ -4978,13 +6149,15 @@ VISUAL PALETTE:
         if (view === "googleflow") {
           if (tabChalkboard) {
             tabChalkboard.style.background = "transparent";
-            tabChalkboard.style.color = "var(--text-muted)";
-            tabChalkboard.style.fontWeight = "400";
+            tabChalkboard.style.color = "#ffffff";
+            tabChalkboard.style.opacity = "0.6";
+            tabChalkboard.style.fontWeight = "600";
           }
           if (tabGoogleFlow) {
             tabGoogleFlow.style.background = "var(--accent)";
-            tabGoogleFlow.style.color = "#000";
-            tabGoogleFlow.style.fontWeight = "700";
+            tabGoogleFlow.style.color = "#000000";
+            tabGoogleFlow.style.opacity = "1";
+            tabGoogleFlow.style.fontWeight = "800";
           }
           if (viewportChalkboard) viewportChalkboard.style.display = "none";
           if (viewportGoogleFlow) viewportGoogleFlow.style.display = "flex";
@@ -5002,13 +6175,15 @@ VISUAL PALETTE:
         } else {
           if (tabChalkboard) {
             tabChalkboard.style.background = "var(--accent)";
-            tabChalkboard.style.color = "#000";
-            tabChalkboard.style.fontWeight = "700";
+            tabChalkboard.style.color = "#000000";
+            tabChalkboard.style.opacity = "1";
+            tabChalkboard.style.fontWeight = "800";
           }
           if (tabGoogleFlow) {
             tabGoogleFlow.style.background = "transparent";
-            tabGoogleFlow.style.color = "var(--text-muted)";
-            tabGoogleFlow.style.fontWeight = "400";
+            tabGoogleFlow.style.color = "#ffffff";
+            tabGoogleFlow.style.opacity = "0.6";
+            tabGoogleFlow.style.fontWeight = "600";
           }
           if (viewportChalkboard) viewportChalkboard.style.display = "block";
           if (viewportGoogleFlow) viewportGoogleFlow.style.display = "none";
@@ -5149,7 +6324,7 @@ VISUAL PALETTE:
               <div style="display:flex; gap:4px; margin-top:6px; border-top:1px solid rgba(255,255,255,0.03); padding-top:8px;">
                 <button class="btn-action" style="font-size:9px; padding:3px; flex-grow:1;" onclick="event.stopPropagation(); app.moveGoogleFlowShot('${shot.id}', 'left')" title="Move Left" ${index === 0 ? 'disabled style="opacity:0.3;"' : ''}>◀</button>
                 <button class="btn-action" style="font-size:9px; padding:3px; flex-grow:1;" onclick="event.stopPropagation(); app.moveGoogleFlowShot('${shot.id}', 'right')" title="Move Right" ${index === this.googleFlowShots.length - 1 ? 'disabled style="opacity:0.3;"' : ''}>▶</button>
-                <button class="btn-action primary" style="font-size:9px; padding:3px 6px; border-color:var(--accent); color:var(--accent);" onclick="event.stopPropagation(); app.selectFlowShot('${shot.id}')">⚙️ Edit</button>
+                <button class="btn-action primary" style="font-size:9px; padding:3px 6px; border-color:var(--accent); color:#000000;" onclick="event.stopPropagation(); app.selectFlowShot('${shot.id}')">⚙️ Edit</button>
               </div>
             </div>
           `;
