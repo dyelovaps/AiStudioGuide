@@ -1636,11 +1636,16 @@
 
             <!-- Active Prompt Result -->
             <div style="display:flex; flex-direction:column; gap:8px;">
-              <span class="field-label" id="active-tab-title">Active Prompt Output</span>
-              <div class="preview-box" id="prompt-output-box">Constructing prompt parameters...</div>
-              <div style="display:flex; gap:10px;">
+              <div style="display:flex; justify-content:space-between; align-items:center;">
+                <span class="field-label" id="active-tab-title" style="margin:0;">Active Prompt Output</span>
+                <span style="color: var(--text-muted); font-size: 10px; font-family: var(--font-mono); font-weight: normal; opacity: 0.85;">✍️ Modifiable (Click inside to edit)</span>
+              </div>
+              <div class="preview-box" id="prompt-output-box" contenteditable="true" style="outline: none; border: 1px solid var(--border-color); transition: border-color 0.2s;" onfocus="this.style.borderColor='var(--accent)'" onblur="this.style.borderColor='var(--border-color)'">Constructing prompt parameters...</div>
+              <div style="display:flex; gap:10px; flex-wrap: wrap;">
                 <button class="btn-action" onclick="app.copyPrompt('prompt-output-box')">Copy Prompt</button>
                 <button class="btn-action" onclick="app.toggleFavoritePrompt()">⭐ Favorite</button>
+                <button class="btn-action" id="btn-translate-fr" style="border-color: rgba(210, 164, 90, 0.3); font-weight: 600;" onclick="app.translatePromptText('fr')" title="Traduire en Français pour lecture / modifications">🌐 en Français</button>
+                <button class="btn-action" id="btn-translate-en" style="border-color: rgba(210, 164, 90, 0.3); font-weight: 600;" onclick="app.translatePromptText('en')" title="Translate to English for optimal AI generation">🇺🇸 in English</button>
               </div>
             </div>
 
@@ -4223,6 +4228,74 @@
         navigator.clipboard.writeText(text).then(() => {
           alert("Prompt parameters copied to clipboard successfully.");
         });
+      }
+
+      async translatePromptText(targetLang) {
+        const outBox = document.getElementById("prompt-output-box");
+        if (!outBox) return;
+        const currentText = outBox.innerText.trim();
+        if (!currentText || currentText === "Constructing prompt parameters...") {
+          alert(targetLang === "fr" ? "Veuillez d'abord générer un prompt à traduire." : "Please generate a prompt to translate first.");
+          return;
+        }
+
+        const btnFr = document.getElementById("btn-translate-fr");
+        const btnEn = document.getElementById("btn-translate-en");
+        
+        const originalFrText = btnFr ? btnFr.innerText : "🌐 en Français";
+        const originalEnText = btnEn ? btnEn.innerText : "🇺🇸 in English";
+
+        if (btnFr) {
+          btnFr.innerText = targetLang === "fr" ? "⏳ Traduction..." : "🌐 en Français";
+          btnFr.disabled = true;
+        }
+        if (btnEn) {
+          btnEn.innerText = targetLang === "en" ? "⏳ Translating..." : "🇺🇸 in English";
+          btnEn.disabled = true;
+        }
+
+        this.logTerminal(`[TRANSLATOR] Requesting translation of prompt to ${targetLang.toUpperCase()} via Pollinations AI...`);
+
+        try {
+          const systemPrompt = "You are an expert Hollywood cinematic prompt translator. Your job is to translate the user's prompt text. If target is 'en', translate to English. If target is 'fr', translate to French. Preserve all camera model names (like ARRI, RED, Sony), aspect ratios (like 2.39:1, 16:9), technical terms (like bokeh, depth of field, chiaroscuro), numerical camera settings (like 50mm, f/1.4), and stylistic nuances. Do NOT add any preamble, conversational text, introductory words, or markdown. Output ONLY the clean, translated prompt text.";
+          
+          const response = await fetch("https://text.pollinations.ai/", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              messages: [
+                { role: "system", content: systemPrompt },
+                { role: "user", content: `Target Language: ${targetLang === "fr" ? "French" : "English"}\n\nPrompt Text to Translate:\n${currentText}` }
+              ],
+              model: "openai",
+              jsonMode: false
+            })
+          });
+
+          if (response.ok) {
+            const translatedText = await response.text();
+            if (translatedText && translatedText.trim()) {
+              outBox.innerText = translatedText.trim();
+              this.logTerminal(`[TRANSLATOR] Prompt translated successfully to ${targetLang.toUpperCase()}!`);
+            } else {
+              throw new Error("Empty translation response.");
+            }
+          } else {
+            throw new Error(`HTTP error ${response.status}`);
+          }
+        } catch (err) {
+          this.logTerminal(`[TRANSLATOR ERROR] Translation failed: ${err.message}.`);
+          alert(targetLang === "fr" ? `Échec de la traduction: ${err.message}` : `Translation failed: ${err.message}`);
+        } finally {
+          if (btnFr) {
+            btnFr.innerText = originalFrText;
+            btnFr.disabled = false;
+          }
+          if (btnEn) {
+            btnEn.innerText = originalEnText;
+            btnEn.disabled = false;
+          }
+        }
       }
 
       toggleFavoritePrompt() {
