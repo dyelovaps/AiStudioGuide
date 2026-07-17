@@ -196,6 +196,7 @@
       flex-shrink: 0;
       height: 100%;
       overflow: hidden;
+      transition: width 0.3s cubic-bezier(0.4, 0, 0.2, 1), min-width 0.3s cubic-bezier(0.4, 0, 0.2, 1), max-width 0.3s cubic-bezier(0.4, 0, 0.2, 1);
     }
 
     .panel-center {
@@ -218,7 +219,130 @@
       flex-shrink: 0;
       height: 100%;
       overflow: hidden;
+      transition: width 0.3s cubic-bezier(0.4, 0, 0.2, 1), min-width 0.3s cubic-bezier(0.4, 0, 0.2, 1), max-width 0.3s cubic-bezier(0.4, 0, 0.2, 1);
     }
+
+    /* Unpinned panel overrides */
+    .panel-left.unpinned {
+      width: 36px !important;
+      min-width: 36px !important;
+      max-width: 36px !important;
+      position: relative;
+    }
+    .panel-left.unpinned:hover {
+      width: 320px !important;
+      min-width: 320px !important;
+      max-width: 320px !important;
+    }
+
+    #plugins-left-panel.unpinned:hover {
+      width: 340px !important;
+      min-width: 340px !important;
+      max-width: 340px !important;
+    }
+
+    .panel-right.unpinned {
+      width: 36px !important;
+      min-width: 36px !important;
+      max-width: 36px !important;
+      position: relative;
+    }
+    .panel-right.unpinned:hover {
+      width: 360px !important;
+      min-width: 360px !important;
+      max-width: 360px !important;
+    }
+
+    /* Hide contents when collapsed unpinned */
+    .panel-left.unpinned > div:not(.unpinned-strip),
+    .panel-right.unpinned > div:not(.unpinned-strip) {
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity 0.15s ease;
+    }
+    .panel-left.unpinned:hover > div:not(.unpinned-strip),
+    .panel-right.unpinned:hover > div:not(.unpinned-strip) {
+      opacity: 1;
+      pointer-events: auto;
+    }
+
+    /* Resizer auto-hide for unpinned */
+    .panel-left.unpinned + .resizer,
+    .panel-right.unpinned + .resizer {
+      display: none !important;
+    }
+
+    /* Pin / Unpin trigger buttons in panel header */
+    .pin-toggle-btn {
+      background: transparent;
+      border: none;
+      color: var(--text-muted);
+      cursor: pointer;
+      font-size: 11px;
+      padding: 4px 6px;
+      border-radius: 4px;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      transition: all 0.2s;
+      opacity: 0.6;
+    }
+    .pin-toggle-btn:hover {
+      opacity: 1;
+      background-color: rgba(255, 255, 255, 0.05);
+      color: var(--accent);
+    }
+    .pin-toggle-btn.pinned {
+      color: var(--accent);
+      opacity: 1;
+    }
+
+    /* Vertical collapsed strip for unpinned sidebars */
+    .unpinned-strip {
+      display: none;
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background-color: var(--bg-panel);
+      flex-direction: column;
+      align-items: center;
+      justify-content: flex-start;
+      padding-top: 24px;
+      gap: 15px;
+      cursor: pointer;
+      z-index: 5;
+    }
+    .panel-left.unpinned .unpinned-strip,
+    .panel-right.unpinned .unpinned-strip {
+      display: flex;
+    }
+    .panel-left.unpinned:hover .unpinned-strip,
+    .panel-right.unpinned:hover .unpinned-strip {
+      display: none;
+    }
+
+    .unpinned-strip-icon {
+      font-size: 14px;
+      color: var(--accent);
+      opacity: 0.8;
+      animation: pulse 2s infinite alternate;
+    }
+
+    .unpinned-strip-text {
+      writing-mode: vertical-rl;
+      text-orientation: mixed;
+      text-transform: uppercase;
+      font-family: var(--font-mono);
+      font-size: 9px;
+      letter-spacing: 1.8px;
+      color: var(--text-muted);
+      font-weight: 700;
+      white-space: nowrap;
+      opacity: 0.7;
+    }
+
 
     /* Resize Drag Handlers */
     .resizer {
@@ -1096,6 +1220,73 @@
       backdrop-filter: blur(10px);
       z-index: 100;
     }
+
+    .whiteboard-floating-toolbar {
+      position: absolute;
+      top: 20px;
+      left: 20px;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      background-color: rgba(18, 18, 22, 0.9);
+      border: 1px solid var(--border-color);
+      border-radius: 8px;
+      padding: 6px;
+      backdrop-filter: blur(10px);
+      z-index: 100;
+      box-shadow: 0 4px 20px rgba(0, 0, 0, 0.5);
+    }
+
+    .toolbar-btn {
+      width: 36px;
+      height: 36px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background-color: var(--bg-input);
+      border: 1px solid var(--border-color);
+      border-radius: 6px;
+      color: var(--text-muted);
+      cursor: pointer;
+      position: relative;
+      transition: all 0.2s ease;
+    }
+
+    .toolbar-btn:hover {
+      border-color: var(--accent);
+      color: var(--accent);
+      background-color: var(--accent-muted);
+    }
+
+    .toolbar-btn.active {
+      border-color: var(--accent);
+      color: #000000;
+      background-color: var(--accent);
+    }
+
+    .toolbar-btn .tooltip-right {
+      position: absolute;
+      left: 46px;
+      top: 50%;
+      transform: translateY(-50%);
+      background-color: var(--bg-deep);
+      border: 1px solid var(--border-color);
+      color: var(--text-main);
+      padding: 4px 8px;
+      border-radius: 4px;
+      font-size: 10px;
+      font-family: var(--font-mono);
+      white-space: nowrap;
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity 0.2s ease;
+      z-index: 200;
+      box-shadow: 0 4px 10px rgba(0,0,0,0.5);
+    }
+
+    .toolbar-btn:hover .tooltip-right {
+      opacity: 1;
+    }
     
     .whiteboard-btn {
       width: 32px;
@@ -1187,6 +1378,24 @@
       background-color: rgba(46, 139, 87, 0.15);
       color: #49c490;
       border: 1px solid rgba(46, 139, 87, 0.3);
+    }
+    
+    .badge-music {
+      background-color: rgba(155, 81, 224, 0.15);
+      color: #bb6bd9;
+      border: 1px solid rgba(155, 81, 224, 0.3);
+    }
+    
+    .badge-note {
+      background-color: rgba(242, 201, 76, 0.15);
+      color: #f2c94c;
+      border: 1px solid rgba(242, 201, 76, 0.3);
+    }
+    
+    .badge-square {
+      background-color: rgba(235, 87, 87, 0.15);
+      color: #eb5757;
+      border: 1px solid rgba(235, 87, 87, 0.3);
     }
     
     .whiteboard-card-title {
@@ -1513,8 +1722,13 @@
       <div id="screen-builder" class="screen">
         <!-- Sidebar context info (left panel) -->
         <div class="panel-left" id="builder-left-panel">
-          <div class="panel-header">
+          <div class="unpinned-strip">
+            <span class="unpinned-strip-icon">📌</span>
+            <span class="unpinned-strip-text">PROMPT METADATA</span>
+          </div>
+          <div class="panel-header" style="justify-content: space-between;">
             <span class="panel-title">PROMPT METADATA <button class="help-icon-btn" onclick="app.showHelp('builder')" title="Comment ça marche ?">?</button></span>
+            <button class="pin-toggle-btn pinned" onclick="app.togglePanelPin(this)" title="Épingler la barre latérale">📌</button>
           </div>
           <div class="panel-body-scroll">
             <div class="custom-input-group" style="margin-bottom: 20px;">
@@ -1585,9 +1799,16 @@
 
         <!-- Real-time dynamic compilation output (right panel) -->
         <div class="panel-right" id="builder-right-panel">
-          <div class="panel-header">
+          <div class="unpinned-strip">
+            <span class="unpinned-strip-icon">📌</span>
+            <span class="unpinned-strip-text">RENDERS</span>
+          </div>
+          <div class="panel-header" style="justify-content: space-between;">
             <span class="panel-title">DYNAMIC CINEMATIC RENDERS <button class="help-icon-btn" onclick="app.showHelp('viewfinder')" title="Comment ça marche ?">?</button></span>
-            <button class="btn-action" onclick="app.saveCurrentProject()">Save Project</button>
+            <div style="display:flex; align-items:center; gap:8px;">
+              <button class="btn-action" onclick="app.saveCurrentProject()">Save Project</button>
+              <button class="pin-toggle-btn pinned" onclick="app.togglePanelPin(this)" title="Épingler la barre latérale">📌</button>
+            </div>
           </div>
           <div class="output-tab-container">
             <div class="output-tab active" onclick="app.switchOutputTab('master')">MASTER</div>
@@ -1722,9 +1943,14 @@
          SCREEN 3: PROJECTS WORKSPACE
          ========================================================================= -->
       <div id="screen-projects" class="screen">
-        <div class="panel-left">
-          <div class="panel-header">
+        <div class="panel-left" id="projects-left-panel">
+          <div class="unpinned-strip">
+            <span class="unpinned-strip-icon">📌</span>
+            <span class="unpinned-strip-text">MY CREATIVE LIBRARY</span>
+          </div>
+          <div class="panel-header" style="justify-content: space-between;">
             <span class="panel-title">MY CREATIVE LIBRARY <button class="help-icon-btn" onclick="app.showHelp('general')" title="Comment ça marche ?">?</button></span>
+            <button class="pin-toggle-btn pinned" onclick="app.togglePanelPin(this)" title="Épingler la barre latérale">📌</button>
           </div>
           <div class="panel-body-scroll" id="projects-sidebar-list">
             <!-- Active saved items list -->
@@ -1755,9 +1981,14 @@
          SCREEN 3.5: AI CO-PILOT WORKSPACE
          ========================================================================= -->
       <div id="screen-copilot" class="screen">
-        <div class="panel-left">
-          <div class="panel-header">
+        <div class="panel-left" id="copilot-left-panel">
+          <div class="unpinned-strip">
+            <span class="unpinned-strip-icon">📌</span>
+            <span class="unpinned-strip-text">DIRECTOR CO-PILOT</span>
+          </div>
+          <div class="panel-header" style="justify-content: space-between;">
             <span class="panel-title">DIRECTOR CO-PILOT <button class="help-icon-btn" onclick="app.showHelp('copilot')" title="Comment ça marche ?">?</button></span>
+            <button class="pin-toggle-btn pinned" onclick="app.togglePanelPin(this)" title="Épingler la barre latérale">📌</button>
           </div>
           <div class="panel-body-scroll" style="display:flex; flex-direction:column; gap:16px;">
             <div style="text-align:center; padding:12px 0;">
@@ -1795,9 +2026,14 @@
           </div>
         </div>
 
-        <div class="panel-right">
-          <div class="panel-header">
+        <div class="panel-right" id="copilot-right-panel">
+          <div class="unpinned-strip">
+            <span class="unpinned-strip-icon">📌</span>
+            <span class="unpinned-strip-text">MONITOR</span>
+          </div>
+          <div class="panel-header" style="justify-content: space-between;">
             <span class="panel-title">SCENE SYNC MONITOR</span>
+            <button class="pin-toggle-btn pinned" onclick="app.togglePanelPin(this)" title="Épingler la barre latérale">📌</button>
           </div>
           <div class="panel-body-scroll" style="display:flex; flex-direction:column; gap:20px;">
             <span class="field-label">Active Workspace Values</span>
@@ -1844,9 +2080,14 @@
          ========================================================================= -->
       <div id="screen-storyboard" class="screen">
         <!-- Left panel: Board Manager & Mistral Agent Hub -->
-        <div class="panel-left" style="width: 320px; min-width: 320px;">
-          <div class="panel-header">
-            <span class="panel-title">STORYBOARD SLATE <button class="help-icon-btn" onclick="app.showHelp('chalkboard')" title="Comment ça marche ?">?</button></span>
+        <div class="panel-left" id="storyboard-left-panel" style="width: 320px; min-width: 320px;">
+          <div class="unpinned-strip">
+            <span class="unpinned-strip-icon">📌</span>
+            <span class="unpinned-strip-text">CARD INSPECTOR</span>
+          </div>
+          <div class="panel-header" style="justify-content: space-between;">
+            <span class="panel-title">Card Inspection & Terminal <button class="help-icon-btn" onclick="app.showHelp('chalkboard')" title="Comment ça marche ?">?</button></span>
+            <button class="pin-toggle-btn pinned" onclick="app.togglePanelPin(this)" title="Épingler la barre latérale">📌</button>
           </div>
           <div class="panel-body-scroll" style="display:flex; flex-direction:column; gap:20px; padding: 16px;">
             <div>
@@ -1937,8 +2178,7 @@
               </div>
             </div>
             <div style="display:flex; gap:8px;" id="chalkboard-header-controls">
-              <button class="btn-action" style="font-size:11px; padding:4px 8px;" onclick="app.resetWhiteboardView()" title="Centre la caméra sur vos cartes">⌖ Center Slate</button>
-              <button class="btn-action" style="font-size:11px; padding:4px 8px; border-color:var(--accent); color:var(--accent);" onclick="app.gatherAllCards()" title="Rassemble toutes les cartes devant vous">🧲 Rapatrier les cartes</button>
+              <button class="btn-action" style="font-size:11px; padding:4px 8px;" onclick="app.resetWhiteboardView()">Center Slate</button>
             </div>
             <div style="display:none; gap:8px;" id="googleflow-header-controls">
               <button class="btn-action primary" style="font-size:11px; padding:4px 8px; border-color: var(--accent); color: #000000; font-weight:600;" onclick="app.addGoogleFlowShot()">＋ New Flow Shot</button>
@@ -1960,6 +2200,33 @@
               <button class="whiteboard-btn" title="Zoom In" onclick="app.zoomWhiteboard(0.1)">＋</button>
               <button class="whiteboard-btn" title="Zoom Out" onclick="app.zoomWhiteboard(-0.1)">－</button>
               <button class="whiteboard-btn" title="Center View" onclick="app.resetWhiteboardView()">⌖</button>
+            </div>
+
+            <!-- Floating Vertical Toolbar (Miro / AZ8 style) -->
+            <div class="whiteboard-floating-toolbar">
+              <button class="toolbar-btn active" id="tool-select" onclick="app.setChalkboardTool('select')" title="Outil Sélection (Flèche)">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="3 3 10.07 19.97 12.58 12.58 19.97 10.07 3 3"></polygon><line x1="13" y1="13" x2="19" y2="19"></line></svg>
+                <span class="tooltip-right">Flèche (Sélectionner / Déplacer Cartes)</span>
+              </button>
+              <button class="toolbar-btn" id="tool-pan" onclick="app.setChalkboardTool('pan')" title="Outil Main (Déplacer le tableau)">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 11V6a2 2 0 0 0-2-2v0a2 2 0 0 0-2 2v5"></path><path d="M14 10V4a2 2 0 0 0-2-2v0a2 2 0 0 0-2 2v6"></path><path d="M10 10.5V6a2 2 0 0 0-2-2v0a2 2 0 0 0-2 2v4.5"></path><path d="M6 10V8a2 2 0 0 0-2-2v0a2 2 0 0 0-2 2v5c0 5.5 4.5 10 10 10s10-4.5 10-10V11a2 2 0 0 0-2-2v0a2 2 0 0 0-2 2"></path></svg>
+                <span class="tooltip-right">Main (Déplacer le Tableau Noir)</span>
+              </button>
+              
+              <div style="width:100%; height:1px; background-color:var(--border-color); margin: 4px 0;"></div>
+
+              <button class="toolbar-btn" onclick="app.addStoryboardCard('note')" title="Ajouter un Post-it Note">
+                📝
+                <span class="tooltip-right">Ajouter une Note (Post-it)</span>
+              </button>
+              <button class="toolbar-btn" onclick="app.addStoryboardCard('square')" title="Ajouter un Cadre Container (Design System)">
+                🔲
+                <span class="tooltip-right">Ajouter un Cadre (Design System Container)</span>
+              </button>
+              <button class="toolbar-btn" onclick="app.addStoryboardCard('music')" title="Ajouter une carte Soundtrack">
+                🎵
+                <span class="tooltip-right">Ajouter un Thème Musical / Soundtrack</span>
+              </button>
             </div>
           </div>
 
@@ -2002,9 +2269,14 @@
         </div>
 
         <!-- Right panel: Card Inspector, Workflows, and Terminals -->
-        <div class="panel-right" style="width: 360px; min-width: 360px;">
-          <div class="panel-header">
-            <span class="panel-title">CARD INSPECTOR & TERMINAL <button class="help-icon-btn" onclick="app.showHelp('inspector')" title="Comment ça marche ?">?</button></span>
+        <div class="panel-right" id="storyboard-right-panel" style="width: 360px; min-width: 360px;">
+          <div class="unpinned-strip">
+            <span class="unpinned-strip-icon">📌</span>
+            <span class="unpinned-strip-text">STORYBOARD SLATE</span>
+          </div>
+          <div class="panel-header" style="justify-content: space-between;">
+            <span class="panel-title">STORYBOARD SLATE <button class="help-icon-btn" onclick="app.showHelp('inspector')" title="Comment ça marche ?">?</button></span>
+            <button class="pin-toggle-btn pinned" onclick="app.togglePanelPin(this)" title="Épingler la barre latérale">📌</button>
           </div>
           <div class="panel-body-scroll" style="display:flex; flex-direction:column; gap:16px; padding: 16px;">
             <div id="inspector-card-details">
@@ -2027,9 +2299,14 @@
          SCREEN 4: DOCUMENTATION & LIBRARIES
          ========================================================================= -->
       <div id="screen-library" class="screen">
-        <div class="panel-left">
-          <div class="panel-header">
+        <div class="panel-left" id="library-left-panel">
+          <div class="unpinned-strip">
+            <span class="unpinned-strip-icon">📌</span>
+            <span class="unpinned-strip-text">CINEMATIC BIBLE</span>
+          </div>
+          <div class="panel-header" style="justify-content: space-between;">
             <span class="panel-title">CINEMATIC BIBLE <button class="help-icon-btn" onclick="app.showHelp('bible')" title="Comment ça marche ?">?</button></span>
+            <button class="pin-toggle-btn pinned" onclick="app.togglePanelPin(this)" title="Épingler la barre latérale">📌</button>
           </div>
           <div class="panel-body-scroll">
             <div class="list-item selected" onclick="app.switchDocCategory('camera')">
@@ -2289,10 +2566,17 @@
          SCREEN 6: PLUGINS & EXTENSIBILITY CORE (CORE + PLUGIN ENGINE)
          ========================================================================= -->
       <div id="screen-plugins" class="screen">
-        <div class="panel-left" style="width: 340px; min-width: 340px;">
+        <div class="panel-left" id="plugins-left-panel" style="width: 340px; min-width: 340px;">
+          <div class="unpinned-strip">
+            <span class="unpinned-strip-icon">📌</span>
+            <span class="unpinned-strip-text">PLUGIN REGISTRY</span>
+          </div>
           <div class="panel-header" style="justify-content: space-between;">
             <span class="panel-title">PLUGIN REGISTRY</span>
-            <button class="btn-action primary" style="font-size: 10px; padding: 4px 8px;" onclick="app.createNewPlugin()">＋ Create</button>
+            <div style="display:flex; align-items:center; gap:6px;">
+              <button class="btn-action primary" style="font-size: 10px; padding: 4px 8px;" onclick="app.createNewPlugin()">＋ Create</button>
+              <button class="pin-toggle-btn pinned" onclick="app.togglePanelPin(this)" title="Épingler la barre latérale">📌</button>
+            </div>
           </div>
           
           <div class="panel-body-scroll" style="padding: 16px; display: flex; flex-direction: column; gap: 16px;">
@@ -5178,6 +5462,7 @@
         this.whiteboardPanY = DB.get("wb_pan_y", 0);
         this.whiteboardZoom = DB.get("wb_zoom", 1.0);
         this.selectedCardId = null;
+        this.currentChalkboardTool = 'select';
         
         // Load Deployed Custom Mistral Agents
         this.deployedAgents = DB.get("deployed_agents_v1", [
@@ -5366,71 +5651,14 @@
       }
 
       resetWhiteboardView() {
-        if (this.storyboardCards.length === 0) {
-          this.whiteboardPanX = 0;
-          this.whiteboardPanY = 0;
-        } else {
-          // 1. Trouver le point central de toutes les cartes existantes
-          let minX = Infinity, maxX = -Infinity, minY = Infinity, maxY = -Infinity;
-          
-          this.storyboardCards.forEach(c => {
-            // Sécurité anti-bug : si une carte a été perdue dans le "néant" (NaN), on la fixe
-            if (isNaN(c.x) || c.x === null) c.x = 1500;
-            if (isNaN(c.y) || c.y === null) c.y = 1500;
-            
-            if (c.x < minX) minX = c.x;
-            if (c.x > maxX) maxX = c.x;
-            if (c.y < minY) minY = c.y;
-            if (c.y > maxY) maxY = c.y;
-          });
-
-          // Centre de la boîte englobante des cartes
-          const centerX = (minX + maxX) / 2;
-          const centerY = (minY + maxY) / 2;
-
-          // Dimensions de l'écran
-          const vp = document.getElementById("storyboard-viewport");
-          const vpWidth = vp ? vp.clientWidth : window.innerWidth / 2;
-          const vpHeight = vp ? vp.clientHeight : window.innerHeight / 2;
-
-          // 2. Calculer le décalage pour mettre le groupe de cartes pile au centre de l'écran
-          // Le "1500" compense le top/left de la div .whiteboard-grid
-          // Le "145" et "100" compensent la moitié de la taille d'une carte
-          this.whiteboardPanX = (vpWidth / 2) + 1500 - centerX - 145;
-          this.whiteboardPanY = (vpHeight / 2) + 1500 - centerY - 100;
-        }
-
+        this.whiteboardPanX = 0;
+        this.whiteboardPanY = 0;
         this.whiteboardZoom = 1.0;
         this.applyWhiteboardTransform();
-        
-        // Sauvegarder le nouvel état dans le cache local
-        DB.set("wb_pan_x", this.whiteboardPanX);
-        DB.set("wb_pan_y", this.whiteboardPanY);
+        DB.set("wb_pan_x", 0);
+        DB.set("wb_pan_y", 0);
         DB.set("wb_zoom", 1.0);
-        DB.set("storyboard_cards_v1", this.storyboardCards); 
-        this.logTerminal("[SYSTEM] Chalkboard viewport refocused automatically on lost cards.");
-      }
-
-      gatherAllCards() {
-        const vp = document.getElementById("storyboard-viewport");
-        const vpWidth = vp ? vp.clientWidth : 800;
-        const vpHeight = vp ? vp.clientHeight : 600;
-
-        // Calculer les coordonnées de là où vous regardez ACTUELLEMENT
-        const targetX = 1500 - this.whiteboardPanX + (vpWidth / 2) - 145;
-        const targetY = 1500 - this.whiteboardPanY + (vpHeight / 2) - 100;
-
-        // Téléporter et aligner toutes les cartes
-        this.storyboardCards.forEach((c, index) => {
-          c.x = targetX + (index * 320) - ((this.storyboardCards.length * 320) / 2); 
-          c.y = targetY;
-        });
-
-        // Mettre à jour l'affichage et les câbles
-        DB.set("storyboard_cards_v1", this.storyboardCards);
-        this.renderStoryboardCards();
-        this.drawStoryboardConnections();
-        this.logTerminal("[SYSTEM] All cards rescued and teleported directly to your current view.");
+        this.logTerminal("[SYSTEM] Chalkboard viewport reset and centered.");
       }
 
       applyWhiteboardTransform() {
@@ -5462,11 +5690,23 @@
         };
 
         if (type === "character") {
-          newCard.details = { age: "Adult", hair: "Slicked back hair", eyes: "Focused stare", wardrobe: "Classic tailored jacket", expression: "Neutral" };
+          newCard.details = { age: "Adult", hair: "Slicked back hair", eyes: "Focused stare", wardrobe: "Classic tailored jacket", expression: "Neutral", voice: "Deep raspy voice" };
         } else if (type === "prop") {
           newCard.details = { dimensions: "Standard size", material: "Polished wood", placement: "Held in hand", lightingInfluence: "Natural shadow" };
         } else if (type === "location") {
           newCard.details = { weather: "Overcast", lighting: "Soft ambient", colorGrade: "Natural film stock", ambiance: "Mysterious" };
+        } else if (type === "music") {
+          newCard.title = "Cinematic Theme";
+          newCard.desc = "Project music soundtrack and auditory backdrop.";
+          newCard.details = { genre: "Dark Ambient", instruments: "Low sub-bass synthesizer, ticking clock", sceneFit: "High-stakes Legal Revelations" };
+        } else if (type === "note") {
+          newCard.title = "Brainstorm note";
+          newCard.desc = "Quick concept note.";
+          newCard.details = { colorTheme: "Yellow", tags: "Idea, Design System" };
+        } else if (type === "square") {
+          newCard.title = "Design System Frame";
+          newCard.desc = "Visual style and design guidelines.";
+          newCard.details = { size: "800x600", borderColor: "#d2a45a" };
         }
 
         this.storyboardCards.push(newCard);
@@ -5495,6 +5735,120 @@
         if (cardEl) cardEl.classList.add("active");
         this.renderInspector();
         this.drawStoryboardConnections();
+      }
+
+      togglePanelPin(btn) {
+        const panel = btn.closest('.panel-left') || btn.closest('.panel-right');
+        if (!panel) return;
+        
+        const isPinned = btn.classList.contains('pinned');
+        if (isPinned) {
+          // Unpin it
+          btn.classList.remove('pinned');
+          btn.textContent = '📌';
+          panel.classList.add('unpinned');
+          this.logTerminal(`[SYSTEM] Sidebar unpinned. Hover over the strip to expand.`);
+        } else {
+          // Pin it
+          btn.classList.add('pinned');
+          btn.textContent = '📌';
+          panel.classList.remove('unpinned');
+          this.logTerminal(`[SYSTEM] Sidebar pinned.`);
+        }
+      }
+
+      setChalkboardTool(tool) {
+        this.currentChalkboardTool = tool; // select vs pan
+        document.querySelectorAll('.whiteboard-floating-toolbar .toolbar-btn').forEach(b => {
+          b.classList.remove('active');
+        });
+        const btn = document.getElementById(`tool-${tool}`);
+        if (btn) btn.classList.add('active');
+
+        // Update cursor style
+        const vp = document.getElementById("storyboard-viewport");
+        if (vp) {
+          if (tool === 'pan') {
+            vp.style.cursor = "grab";
+          } else {
+            vp.style.cursor = "default";
+          }
+        }
+        this.logTerminal(`[SYSTEM] Tool switched to ${tool.toUpperCase()}`);
+      }
+
+      applyMagneticSnapping(cardId) {
+        const card = this.storyboardCards.find(c => c.id === cardId);
+        if (!card) return;
+
+        // Find the nearest other card
+        let nearestCard = null;
+        let minDistance = Infinity;
+
+        this.storyboardCards.forEach(other => {
+          if (other.id === cardId) return;
+          const dist = Math.hypot(card.x - other.x, card.y - other.y);
+          if (dist < minDistance) {
+            minDistance = dist;
+            nearestCard = other;
+          }
+        });
+
+        // Magnet threshold: 240px
+        if (nearestCard && minDistance < 240) {
+          // Check if connection already exists in either direction
+          const exists = this.storyboardConnections.some(conn => 
+            (conn.fromId === cardId && conn.toId === nearestCard.id) ||
+            (conn.fromId === nearestCard.id && conn.toId === cardId)
+          );
+
+          if (!exists) {
+            // Snapping position alignment (ComfyUI / AZ8 style)
+            // Determine relative direction
+            const dx = card.x - nearestCard.x;
+            const dy = card.y - nearestCard.y;
+
+            if (Math.abs(dx) > Math.abs(dy)) {
+              // Align horizontally
+              card.x = nearestCard.x + (dx > 0 ? 340 : -340);
+              card.y = nearestCard.y;
+            } else {
+              // Align vertically
+              card.x = nearestCard.x;
+              card.y = nearestCard.y + (dy > 0 ? 200 : -200);
+            }
+
+            // Update HTML position of snapped card
+            const el = document.getElementById(cardId);
+            if (el) {
+              el.style.transform = `translate(${card.x}px, ${card.y}px)`;
+            }
+
+            // Automatically create connection wire!
+            const connId = "conn_" + Date.now();
+            const newConn = {
+              id: connId,
+              fromId: nearestCard.id,
+              toId: cardId,
+              label: "Magnetic Link",
+              color: "#49c490", // Cool snap green
+              wireStyle: "curved"
+            };
+
+            this.storyboardConnections.push(newConn);
+            DB.set("storyboard_connections_v1", this.storyboardConnections);
+            this.drawStoryboardConnections();
+
+            // Notify in terminal
+            this.logTerminal(`[MAGNET] Snapped & Connected: "${nearestCard.title}" ⇄ "${card.title}"!`);
+            
+            // Visual feedback on snapped cards
+            const el1 = document.getElementById(nearestCard.id);
+            const el2 = document.getElementById(cardId);
+            if (el1) { el1.style.outline = "2px solid #49c490"; setTimeout(() => el1.style.outline = "", 800); }
+            if (el2) { el2.style.outline = "2px solid #49c490"; setTimeout(() => el2.style.outline = "", 800); }
+          }
+        }
       }
 
       handleCardHeaderMouseDown(e, cardId) {
@@ -5530,6 +5884,7 @@
         const upHandler = () => {
           this.draggedCardId = null;
           if (el) el.style.zIndex = "10";
+          this.applyMagneticSnapping(cardId);
           DB.set("storyboard_cards_v1", this.storyboardCards);
           document.removeEventListener("mousemove", moveHandler);
           document.removeEventListener("mouseup", upHandler);
@@ -5557,7 +5912,13 @@
 
           // Type specific icon & class
           const badgeClass = `badge-${c.type}`;
-          const typeIcon = c.type === "character" ? "👤" : c.type === "prop" ? "📦" : "🗺️";
+          let typeIcon = "👤";
+          if (c.type === "character") typeIcon = "👤";
+          else if (c.type === "prop") typeIcon = "📦";
+          else if (c.type === "location") typeIcon = "🗺️";
+          else if (c.type === "music") typeIcon = "🎵";
+          else if (c.type === "note") typeIcon = "📝";
+          else if (c.type === "square") typeIcon = "🔲";
 
           // Thumbnail render logic
           let thumbHTML = "";
@@ -5820,7 +6181,8 @@
             { label: "Hair Grooming Details", key: "hair", placeholder: "e.g. Crisp graying short hair" },
             { label: "Eyes Expression & Gaze", key: "eyes", placeholder: "e.g. Sharp calculated stare" },
             { label: "Protagonist Wardrobe Spec", key: "wardrobe", placeholder: "e.g. Savile Row wool blazer" },
-            { label: "Emotion / Facial Expression", key: "expression", placeholder: "e.g. Suppressed stress" }
+            { label: "Emotion / Facial Expression", key: "expression", placeholder: "e.g. Suppressed stress" },
+            { label: "Character Voice Tone & Vibe (Voice)", key: "voice", placeholder: "e.g. Gravelly baritone, whispery French accent" }
           ];
           this.renderModalDynamicForm(fields, card.details, container);
 
@@ -5839,6 +6201,28 @@
             { label: "Lighting setup", key: "lighting", placeholder: "e.g. Low key shadow pools" },
             { label: "Color Grading Profile", key: "colorGrade", placeholder: "e.g. Siberian desaturated cold look" },
             { label: "Spatial Ambiance", key: "ambiance", placeholder: "e.g. Dusty suspense" }
+          ];
+          this.renderModalDynamicForm(fields, card.details, container);
+
+        } else if (card.type === "music") {
+          const fields = [
+            { label: "Music Genre / Soundtrack Mood", key: "genre", placeholder: "e.g. Dark Cinematic Ambient, Neo-Classical" },
+            { label: "Instruments / Rhythm Speed", key: "instruments", placeholder: "e.g. Low drone synth, slow ticking strings" },
+            { label: "Cinematic Scene Fit", key: "sceneFit", placeholder: "e.g. High suspense legal deposition revelations" }
+          ];
+          this.renderModalDynamicForm(fields, card.details, container);
+
+        } else if (card.type === "note") {
+          const fields = [
+            { label: "Note Color Theme", key: "colorTheme", placeholder: "e.g. Yellow, Pink, Blue, Neon Green" },
+            { label: "Idea Tags & Labels", key: "tags", placeholder: "e.g. Design system, Character cue" }
+          ];
+          this.renderModalDynamicForm(fields, card.details, container);
+
+        } else if (card.type === "square") {
+          const fields = [
+            { label: "Container Frame Dimensions", key: "size", placeholder: "e.g. 800x600, 1200x900" },
+            { label: "Container Border Color Hex", key: "borderColor", placeholder: "e.g. #d2a45a, #49c490" }
           ];
           this.renderModalDynamicForm(fields, card.details, container);
         }
@@ -6116,7 +6500,13 @@
         const card = this.storyboardCards.find(c => c.id === this.selectedCardId);
         if (!card) return;
 
-        const specHeader = card.type === "character" ? "👤 VISUAL ANATOMY" : card.type === "prop" ? "📦 PHYSICAL METADATA" : "🗺️ ENVIRONMENTAL DATA";
+        let specHeader = "📋 DETAILS";
+        if (card.type === "character") specHeader = "👤 VISUAL ANATOMY";
+        else if (card.type === "prop") specHeader = "📦 PHYSICAL METADATA";
+        else if (card.type === "location") specHeader = "🗺️ ENVIRONMENTAL DATA";
+        else if (card.type === "music") specHeader = "🎵 SOUNDTRACK SPECS";
+        else if (card.type === "note") specHeader = "📝 STICKY NOTE CONTENT";
+        else if (card.type === "square") specHeader = "🔲 SYSTEM FRAME SPECS";
 
         let dynamicSpecsHTML = "";
         Object.entries(card.details || {}).forEach(([k, v]) => {
@@ -6132,7 +6522,13 @@
         let targetOptionsHTML = `<option value="">-- Choisir cible (Input) --</option>`;
         this.storyboardCards.forEach(c => {
           if (c.id !== card.id) {
-            const icon = c.type === "character" ? "👤" : c.type === "prop" ? "📦" : "🗺️";
+            let icon = "👤";
+            if (c.type === "character") icon = "👤";
+            else if (c.type === "prop") icon = "📦";
+            else if (c.type === "location") icon = "🗺️";
+            else if (c.type === "music") icon = "🎵";
+            else if (c.type === "note") icon = "📝";
+            else if (c.type === "square") icon = "🔲";
             targetOptionsHTML += `<option value="${c.id}">${icon} ${c.title} (${c.type})</option>`;
           }
         });
