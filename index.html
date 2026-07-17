@@ -1937,7 +1937,8 @@
               </div>
             </div>
             <div style="display:flex; gap:8px;" id="chalkboard-header-controls">
-              <button class="btn-action" style="font-size:11px; padding:4px 8px;" onclick="app.resetWhiteboardView()">Center Slate</button>
+              <button class="btn-action" style="font-size:11px; padding:4px 8px;" onclick="app.resetWhiteboardView()" title="Centre la caméra sur vos cartes">⌖ Center Slate</button>
+              <button class="btn-action" style="font-size:11px; padding:4px 8px; border-color:var(--accent); color:var(--accent);" onclick="app.gatherAllCards()" title="Rassemble toutes les cartes devant vous">🧲 Rapatrier les cartes</button>
             </div>
             <div style="display:none; gap:8px;" id="googleflow-header-controls">
               <button class="btn-action primary" style="font-size:11px; padding:4px 8px; border-color: var(--accent); color: #000000; font-weight:600;" onclick="app.addGoogleFlowShot()">＋ New Flow Shot</button>
@@ -5408,6 +5409,28 @@
         DB.set("wb_zoom", 1.0);
         DB.set("storyboard_cards_v1", this.storyboardCards); 
         this.logTerminal("[SYSTEM] Chalkboard viewport refocused automatically on lost cards.");
+      }
+
+      gatherAllCards() {
+        const vp = document.getElementById("storyboard-viewport");
+        const vpWidth = vp ? vp.clientWidth : 800;
+        const vpHeight = vp ? vp.clientHeight : 600;
+
+        // Calculer les coordonnées de là où vous regardez ACTUELLEMENT
+        const targetX = 1500 - this.whiteboardPanX + (vpWidth / 2) - 145;
+        const targetY = 1500 - this.whiteboardPanY + (vpHeight / 2) - 100;
+
+        // Téléporter et aligner toutes les cartes
+        this.storyboardCards.forEach((c, index) => {
+          c.x = targetX + (index * 320) - ((this.storyboardCards.length * 320) / 2); 
+          c.y = targetY;
+        });
+
+        // Mettre à jour l'affichage et les câbles
+        DB.set("storyboard_cards_v1", this.storyboardCards);
+        this.renderStoryboardCards();
+        this.drawStoryboardConnections();
+        this.logTerminal("[SYSTEM] All cards rescued and teleported directly to your current view.");
       }
 
       applyWhiteboardTransform() {
