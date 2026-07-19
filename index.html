@@ -2385,6 +2385,9 @@
                   <button class="btn-vf-ratio" onclick="app.setViewfinderRatio('4:3', this)">
                     4:3
                   </button>
+                  <button class="btn-vf-ratio" onclick="app.setViewfinderRatio('3:4', this)">
+                    3:4
+                  </button>
                   <button class="btn-vf-ratio" onclick="app.setViewfinderRatio('9:16', this)">
                     9:16
                   </button>
@@ -2738,6 +2741,7 @@ unrealistic, cartoon, render, sketch, low quality, noise, grain, text watermark<
               <option value="16:9">16:9</option>
               <option value="2.39:1">2.39:1 Cinéma</option>
               <option value="4:3">4:3</option>
+              <option value="3:4">3:4</option>
               <option value="9:16">9:16 Vertical</option>
               <option value="1:1">1:1 Carré</option>
             </select>
@@ -6228,7 +6232,6 @@ unrealistic, cartoon, render, sketch, low quality, noise, grain, text watermark<
         } else if (screenId === "vod") {
           this.vodMainView = DB.get("vod_main_view", "productions");
           this.switchVODMainTab(this.vodMainView);
-
         } else if (screenId === "copilot") {
           if (this.selectedCardId) this.copilotConsole.attachedCardId = this.selectedCardId;
           this.renderCopilotAttachments();
@@ -7412,6 +7415,7 @@ unrealistic, cartoon, render, sketch, low quality, noise, grain, text watermark<
         let ratioVal = 2.39;
         if (this.viewfinderRatio === "16:9") ratioVal = 16 / 9;
         else if (this.viewfinderRatio === "4:3") ratioVal = 4 / 3;
+        else if (this.viewfinderRatio === "3:4") ratioVal = 3 / 4;
         else if (this.viewfinderRatio === "9:16") ratioVal = 9 / 16;
 
         if (w / h > ratioVal) {
@@ -7976,7 +7980,7 @@ unrealistic, cartoon, render, sketch, low quality, noise, grain, text watermark<
 
       // --- Génération Image/Vidéo depuis le chat ---
       ratioToDims(ratio) {
-        const map = { "16:9": [1024, 576], "2.39:1": [1200, 502], "4:3": [1024, 768], "9:16": [576, 1024], "1:1": [1024, 1024] };
+        const map = { "16:9": [1024, 576], "2.39:1": [1200, 502], "4:3": [1024, 768], "3:4": [768, 1024], "9:16": [576, 1024], "1:1": [1024, 1024] };
         return map[ratio] || [1024, 576];
       }
 
@@ -11877,6 +11881,7 @@ VISUAL PALETTE:
       closeLibraryItemModal() {
         document.getElementById("library-item-modal").style.display = "none";
       }
+
       openVODModal(id) {
         const item = this.vodLibrary.find((v) => v.id === id);
         if (!item) return;
