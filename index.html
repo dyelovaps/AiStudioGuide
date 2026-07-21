@@ -12142,6 +12142,3062 @@ VISUAL PALETTE:
     // Launch Application instance
     window.app = new BlacklawPromptStudio();
   </script>
-</body>
+
+  <!-- FINAL CONSOLIDATED WITH PIN + BADGE MANAGER -->
+  <script>
+/** FINAL CONSOLIDATED PATCH - Single, optimized, fixes all reported issues
+ * - @ mentions work everywhere and persist after send
+ * - Badges attached to cards, clickable, show details
+ * - Provider/IA lists dynamic based on API keys (with prefix DB)
+ * - Generations Hub + Badge Manager
+ * - Performance optimized, DB consistent
+ */
+(() => {
+  // --- DB helpers with correct prefix ---
+  const PREFIX = 'blacklaw_cinematic_';
+  const dbGet = (k, d) => {
+    try { const v = localStorage.getItem(PREFIX + k); return v ? JSON.parse(v) : d; } catch { return d; }
+  };
+  const dbSet = (k, v) => { try { localStorage.setItem(PREFIX + k, JSON.stringify(v)); } catch(e){ console.error('DB set error', e); } };
+  const dbRemove = (k) => { try { localStorage.removeItem(PREFIX + k); } catch {} };
+
+  // Expose for debugging
+  window._dbGet = dbGet; window._dbSet = dbSet;
+
+  // --- Inject CSS once ---
+  if (!document.getElementById('final-patch-styles')) {
+    const style = document.createElement('style');
+    style.id = 'final-patch-styles';
+    style.textContent = `
+    .mention-dropdown {
+      position: fixed; background:#121217; border:1px solid #282833; border-radius:10px; padding:8px; z-index:6000;
+      max-height:320px; overflow-y:auto; width:320px; box-shadow:0 14px 40px rgba(0,0,0,0.7), 0 0 0 1px rgba(210,164,90,0.1);
+      backdrop-filter: blur(12px); animation: badgePop 0.18s ease;
+    }
+    .mention-group-title { font-family:var(--font-mono, monospace); font-size:9px; color:#d2a45a; font-weight:800; letter-spacing:1px; text-transform:uppercase; padding:8px 6px 4px; border-bottom:1px solid rgba(255,255,255,0.05); margin-bottom:4px; }
+    .mention-item { display:flex; align-items:center; gap:8px; padding:8px 10px; border-radius:6px; cursor:pointer; transition:all 0.12s; border:1px solid transparent; }
+    .mention-item:hover, .mention-item.active { background:rgba(210,164,90,0.12); border-color:rgba(210,164,90,0.25); }
+    .mention-item-icon { width:24px; height:24px; border-radius:5px; display:flex; align-items:center; justify-content:center; font-size:12px; flex-shrink:0; background:rgba(210,164,90,0.08); border:1px solid rgba(210,164,90,0.15); }
+    .mention-item-info { flex:1; min-width:0; }
+    .mention-item-title { font-size:12px; font-weight:600; color:#f0f0f5; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+    .mention-item-sub { font-size:9px; color:#9aa0a6; font-family:var(--font-mono); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+    .inline-mention { display:inline-flex; align-items:center; gap:4px; padding:2px 8px; border-radius:12px; font-size:11px; font-weight:700; cursor:pointer; border:1px solid; margin:0 2px; vertical-align:middle; transition:all 0.15s; font-family:var(--font-mono); }
+    .inline-mention:hover { transform:scale(1.05); filter:brightness(1.2); }
+    .inline-mention.character { background:rgba(65,105,225,0.15); color:#6398f7; border-color:rgba(65,105,225,0.3); }
+    .inline-mention.location { background:rgba(46,139,87,0.15); color:#49c490; border-color:rgba(46,139,87,0.3); }
+    .inline-mention.prop { background:rgba(210,164,90,0.15); color:#d2a45a; border-color:rgba(210,164,90,0.3); }
+    .inline-mention.music { background:rgba(155,81,224,0.15); color:#bb6bd9; border-color:rgba(155,81,224,0.3); }
+    .inline-mention.note { background:rgba(242,201,76,0.15); color:#f2c94c; border-color:rgba(242,201,76,0.3); }
+    .inline-mention.square { background:rgba(235,87,87,0.15); color:#eb5757; border-color:rgba(235,87,87,0.3); }
+    .inline-mention.flow { background:rgba(73,196,144,0.15); color:#49c490; border-color:rgba(73,196,144,0.3); }
+    .chip-mention { display:inline-flex; align-items:center; gap:6px; background:rgba(210,164,90,0.12); border:1px solid #d2a45a; padding:4px 10px; border-radius:14px; font-size:10px; color:#d2a45a; font-weight:700; font-family:var(--font-mono); animation: badgePop 0.22s cubic-bezier(0.175,0.885,0.32,1.275); }
+    @keyframes badgePop { 0%{transform:scale(0.85); opacity:0;} 100%{transform:scale(1); opacity:1;} }
+    .chip-mention.character { border-color:#6398f7; color:#6398f7; background:rgba(65,105,225,0.12); }
+    .chip-mention.location { border-color:#49c490; color:#49c490; background:rgba(46,139,87,0.12); }
+    .chip-mention .chip-remove { cursor:pointer; font-weight:900; margin-left:2px; opacity:0.7; }
+    .chip-mention .chip-remove:hover { opacity:1; color:#ff453a; }
+    .card-attached-badge-row { position:absolute; top:-10px; left:10px; right:10px; display:flex; gap:6px; z-index:15; pointer-events:none; }
+    .card-attached-badge { pointer-events:auto; font-size:8px; font-weight:800; font-family:var(--font-mono); padding:3px 7px; border-radius:10px; background:#121217; border:1px solid #282833; box-shadow:0 4px 10px rgba(0,0,0,0.5); display:inline-flex; align-items:center; gap:4px; cursor:pointer; transition:all 0.15s; }
+    .card-attached-badge:hover { transform:translateY(-2px) scale(1.05); border-color:#d2a45a; }
+    .card-detail-popup { position:fixed; background:#18181f; border:1px solid #d2a45a; border-radius:12px; width:340px; box-shadow:0 20px 50px rgba(0,0,0,0.8); z-index:7000; overflow:hidden; animation: badgePop 0.2s ease; }
+    .card-detail-popup-header { padding:12px 16px; background:#0a0a0c; border-bottom:1px solid #282833; display:flex; justify-content:space-between; align-items:center; }
+    #copilot-chat-messages { scroll-behavior:smooth; }
+    .chat-bubble.ai.typing { opacity:0.8; }
+    .provider-status { font-size:8px; padding:2px 6px; border-radius:10px; font-family:var(--font-mono); }
+    `;
+    document.head.appendChild(style);
+  }
+
+  function whenAppReady(cb) {
+    if (window.app && window.app.storyboardCards) cb(window.app);
+    else setTimeout(() => whenAppReady(cb), 150);
+  }
+
+  whenAppReady((app) => {
+    console.log('[FINAL PATCH] Initializing...');
+
+    // --- Badge Registry with correct DB ---
+    const BadgeRegistry = {
+      KEY: 'badge_registry_v2',
+      getAll() { return dbGet(this.KEY, []); },
+      saveAll(list) { dbSet(this.KEY, list); window.dispatchEvent(new CustomEvent('badgeRegistryUpdated')); },
+      initFromCards(cards) {
+        let reg = this.getAll();
+        if (reg.length === 0 && cards && cards.length > 0) {
+          reg = cards.map(c => ({
+            id: 'badge_' + c.id,
+            title: c.title,
+            type: c.type,
+            desc: c.desc,
+            details: c.details || {},
+            image: c.image || null,
+            video: c.video || null,
+            linkedCardId: c.id,
+            createdAt: Date.now(),
+            usageCount: 0,
+            icon: ({character:'👤', location:'🗺️', prop:'📦', music:'🎵', note:'📝', square:'🔲'})[c.type] || '📌',
+            color: c.type
+          }));
+          this.saveAll(reg);
+        }
+        return reg;
+      },
+      create(data) {
+        const list = this.getAll();
+        const badge = {
+          id: 'badge_' + Date.now(),
+          title: data.title || 'Nouveau Badge',
+          type: data.type || 'character',
+          desc: data.desc || '',
+          details: data.details || {},
+          image: data.image || null,
+          video: null,
+          linkedCardId: data.linkedCardId || null,
+          createdAt: Date.now(),
+          usageCount: 0,
+          icon: data.icon || ({character:'👤', location:'🗺️', prop:'📦'})[data.type] || '📌',
+          color: data.type
+        };
+        list.push(badge);
+        this.saveAll(list);
+        return badge;
+      },
+      update(id, updates) {
+        const list = this.getAll();
+        const idx = list.findIndex(b => b.id === id);
+        if (idx === -1) return null;
+        list[idx] = {...list[idx], ...updates, updatedAt: Date.now()};
+        this.saveAll(list);
+        return list[idx];
+      },
+      delete(id) {
+        const list = this.getAll().filter(b => b.id !== id);
+        this.saveAll(list);
+      },
+      search(query) {
+        const all = this.getAll();
+        if (!query) return all.slice(0, 30);
+        const q = query.toLowerCase();
+        const aliasMap = {
+          'personnages':'character','personnage':'character','perso':'character','persos':'character','character':'character','characters':'character',
+          'lieu':'location','lieux':'location','location':'location','locations':'location',
+          'prop':'prop','props':'prop','accessoire':'prop','accessoires':'prop',
+          'musique':'music','music':'music',
+          'note':'note','notes':'note',
+          'cadre':'square','cadres':'square'
+        };
+        if (aliasMap[q]) return all.filter(b => b.type === aliasMap[q]);
+        // partial alias in query
+        for (const [alias, type] of Object.entries(aliasMap)) {
+          if (q.includes(alias)) return all.filter(b => b.type === type);
+        }
+        return all.filter(b => 
+          b.title.toLowerCase().includes(q) ||
+          b.type.toLowerCase().includes(q) ||
+          (b.desc && b.desc.toLowerCase().includes(q))
+        ).slice(0, 30);
+      }
+    };
+    window.BadgeRegistry = BadgeRegistry;
+    BadgeRegistry.initFromCards(app.storyboardCards);
+
+    // --- Provider defs with correct key names matching DB ---
+    const PROVIDER_DEFS = {
+      openai: { label:'OpenAI', icon:'🤖', modes:['chat','image','video'], chatModels:['gpt-4o','gpt-4o-mini','gpt-4-turbo'], imageModels:['dall-e-3','gpt-image-1'], videoModels:['sora'], key:'key_openai' },
+      anthropic: { label:'Anthropic', icon:'🧠', modes:['chat'], chatModels:['claude-3-5-sonnet','claude-3-opus','claude-3-haiku'], imageModels:[], videoModels:[], key:'key_anthropic' },
+      gemini: { label:'Gemini', icon:'💎', modes:['chat','image','video'], chatModels:['gemini-1.5-pro','gemini-1.5-flash'], imageModels:['imagen-3'], videoModels:['veo'], key:'key_gemini' },
+      mistral: { label:'Mistral', icon:'🌬️', modes:['chat'], chatModels:['mistral-large-2','mistral-small'], imageModels:[], videoModels:[], key:'key_mistral' },
+      fal: { label:'Fal.ai', icon:'⚡', modes:['image','video'], chatModels:[], imageModels:['flux/schnell','flux/dev','flux-pro'], videoModels:['kling-v1.5','minimax'], key:'key_fal' },
+      pollinations: { label:'Pollinations (Gratuit)', icon:'🐝', modes:['chat','image'], chatModels:['openai','mistral','qwen'], imageModels:['flux','turbo','flux-pro'], videoModels:[], key:null, free:true },
+      kie: { label:'Kie/Kling', icon:'🎬', modes:['video'], chatModels:[], imageModels:[], videoModels:['kling-v1.5-pro','veo-3'], key:'key_kie' },
+      openrouter: { label:'OpenRouter', icon:'🔀', modes:['chat'], chatModels:['auto','anthropic/claude-3.5-sonnet','openai/gpt-4o'], imageModels:[], videoModels:[], key:'key_openrouter' }
+    };
+    const hasKey = (def) => {
+      if (!def.key) return true;
+      const v = dbGet(def.key, '');
+      return typeof v === 'string' && v.trim().length > 8;
+    };
+    const getProvidersForMode = (mode, onlyAvailable=true) => {
+      let list = [];
+      for (const [k, d] of Object.entries(PROVIDER_DEFS)) {
+        if (!d.modes.includes(mode)) continue;
+        const avail = hasKey(d);
+        if (onlyAvailable && !avail) continue;
+        list.push({key:k, ...d, available: avail});
+      }
+      list.sort((a,b)=> (a.available===b.available?0: a.available?-1:1));
+      return list;
+    };
+
+    // --- Utility: get card meta ---
+    app.getCardMeta = app.getCardMeta || function(card) {
+      const map = { character:{icon:'👤', label:'Personnage', color:'character'}, location:{icon:'🗺️', label:'Lieu', color:'location'}, prop:{icon:'📦', label:'Prop', color:'prop'}, music:{icon:'🎵', label:'Musique', color:'music'}, note:{icon:'📝', label:'Note', color:'note'}, square:{icon:'🔲', label:'Cadre', color:'square'} };
+      return map[card.type] || {icon:'📌', label:card.type, color:'prop'};
+    };
+
+    // --- Card detail popup ---
+    app.showCardDetailPopup = function(cardId, evt) {
+      if (evt) evt.stopPropagation();
+      let card = this.storyboardCards.find(c=>c.id===cardId);
+      let badge = BadgeRegistry.getAll().find(b=>b.id===cardId || b.linkedCardId===cardId);
+      if (!card && badge && badge.linkedCardId) card = this.storyboardCards.find(c=>c.id===badge.linkedCardId);
+      if (!card && !badge) return;
+      const item = card || badge;
+      const meta = card ? this.getCardMeta(card) : {icon:badge.icon, label:badge.type, color:badge.type};
+
+      const existing = document.getElementById('card-detail-popup');
+      if (existing) existing.remove();
+
+      const details = item.details || {};
+      const detailsHTML = Object.entries(details).map(([k,v])=>`<div style="display:flex; justify-content:space-between; border-bottom:1px solid rgba(255,255,255,0.06); padding:6px 0; font-size:11px;"><span style="color:#9aa0a6; text-transform:uppercase; font-family:monospace; font-size:10px;">${k}</span><span style="color:#f0f0f5; font-weight:600; max-width:180px; text-align:right;">${v}</span></div>`).join('') || '<div style="font-size:11px; color:#9aa0a6; font-style:italic;">Aucun détail</div>';
+
+      const popup = document.createElement('div');
+      popup.id = 'card-detail-popup';
+      popup.className = 'card-detail-popup';
+      if (evt) {
+        popup.style.top = (evt.clientY+10)+'px';
+        popup.style.left = Math.min(evt.clientX, window.innerWidth-360)+'px';
+      } else {
+        popup.style.top = '50%'; popup.style.left='50%'; popup.style.transform='translate(-50%,-50%)';
+      }
+      popup.innerHTML = `
+        <div class="card-detail-popup-header">
+          <div style="display:flex; align-items:center; gap:8px;"><span>${meta.icon}</span><span style="font-size:11px; font-weight:800; font-family:monospace; color:#d2a45a; text-transform:uppercase;">${meta.label}</span><span style="font-size:12px; font-weight:700; color:#fff;">${item.title}</span></div>
+          <span style="cursor:pointer; color:#9aa0a6;" onclick="document.getElementById('card-detail-popup')?.remove()">✕</span>
+        </div>
+        <div style="padding:14px; display:flex; flex-direction:column; gap:12px; max-height:420px; overflow-y:auto;">
+          <div style="width:100%; height:120px; background:#0c0c10; border-radius:8px; overflow:hidden; display:flex; align-items:center; justify-content:center; border:1px solid #282833;">
+            ${item.image?`<img src="${item.image}" style="width:100%; height:100%; object-fit:cover;">`:`<span style="font-size:32px; opacity:0.3;">${meta.icon}</span>`}
+          </div>
+          <p style="font-size:12px; color:#9aa0a6; line-height:1.5;">${item.desc||''}</p>
+          <div style="background:rgba(255,255,255,0.02); border:1px solid rgba(255,255,255,0.04); border-radius:8px; padding:10px;">${detailsHTML}</div>
+          <div style="display:flex; gap:8px;">
+            <button class="btn-action primary" style="flex:1; font-size:10px;" onclick="app.selectCard('${card?card.id:''}'); app.navigateTo('storyboard'); document.getElementById('card-detail-popup')?.remove();">🎯 Chalkboard</button>
+            <button class="btn-action" style="flex:1; font-size:10px;" onclick="app.syncCardToBuilder && app.syncCardToBuilder('${card?card.id:''}'); document.getElementById('card-detail-popup')?.remove();">⚡ Builder</button>
+          </div>
+        </div>`;
+      document.body.appendChild(popup);
+      setTimeout(()=>{ document.addEventListener('click', function close(e){ const p=document.getElementById('card-detail-popup'); if(p && !p.contains(e.target) && !e.target.closest('.inline-mention')){ p.remove(); document.removeEventListener('click', close); } }); }, 80);
+    };
+
+    // --- Copilot console extended ---
+    app.ensureCopilotConsoleExtended = function() {
+      if (!this.copilotConsole) this.copilotConsole = {};
+      if (!this.copilotConsole.mentionedCardIds) this.copilotConsole.mentionedCardIds = [];
+      if (!this.copilotConsole.attachedCardIds) this.copilotConsole.attachedCardIds = [];
+      if (this.copilotConsole.attachedCardId && !this.copilotConsole.attachedCardIds.includes(this.copilotConsole.attachedCardId)) {
+        this.copilotConsole.attachedCardIds.push(this.copilotConsole.attachedCardId);
+      }
+      if (!this.copilotConsole.provider) this.copilotConsole.provider = dbGet('copilot_last_provider_'+(this.copilotConsole.mode||'chat'), 'pollinations');
+    };
+
+    // --- Parse mentions (fixed) ---
+    const aliasMap = {
+      'personnages':'character','personnage':'character','perso':'character','persos':'character','character':'character','characters':'character',
+      'lieu':'location','lieux':'location','location':'location','locations':'location',
+      'prop':'prop','props':'prop','accessoire':'prop','accessoires':'prop',
+      'musique':'music','music':'music',
+      'note':'note','notes':'note',
+      'cadre':'square','cadres':'square'
+    };
+    app.parseMentionsFromText = function(text) {
+      if (!text) return [];
+      const found = new Set();
+      const lower = text.toLowerCase();
+      const badges = BadgeRegistry.getAll();
+      const cards = this.storyboardCards||[];
+
+      // Exact @Title
+      [...badges, ...cards].forEach(item=>{
+        const t = (item.title||'').toLowerCase();
+        if (!t) return;
+        if (lower.includes('@'+t)) {
+          const id = item.linkedCardId || item.id;
+          if (id) found.add(id);
+          const c = cards.find(x=>x.title.toLowerCase()===t);
+          if (c) found.add(c.id);
+        }
+      });
+      (this.googleFlowShots||[]).forEach(s=>{ if (lower.includes(('@'+s.title).toLowerCase())) found.add(s.id); });
+
+      // Regex @xxx
+      const re = /@([a-z0-9_àâéèêëîïôùûüÿç\-\s]{2,})/gi;
+      let m;
+      while((m=re.exec(text))!==null){
+        let raw = m[1].trim().toLowerCase().split(/[\s,.;!?]/)[0];
+        if (raw.length<2) continue;
+        if (aliasMap[raw]) {
+          const type = aliasMap[raw];
+          badges.filter(b=>b.type===type).forEach(b=>{ found.add(b.linkedCardId||b.id); });
+          cards.filter(c=>c.type===type).forEach(c=>found.add(c.id));
+          continue;
+        }
+        // partial
+        [...badges, ...cards].forEach(item=>{
+          const tt = (item.title||'').toLowerCase();
+          if (tt && (tt.includes(raw) || raw.includes(tt))) {
+            const id = item.linkedCardId || item.id;
+            if (id) found.add(id);
+          }
+        });
+      }
+      return Array.from(found);
+    };
+    app.buildContextFromMentions = function(ids) {
+      if (!ids||ids.length===0) return '';
+      let ctx = '\n\n--- CONTEXTE MENTIONNÉ ---\n';
+      ids.forEach(id=>{
+        let card = this.storyboardCards.find(c=>c.id===id);
+        let badge = BadgeRegistry.getAll().find(b=>b.id===id || b.linkedCardId===id);
+        if (!card && badge && badge.linkedCardId) card = this.storyboardCards.find(c=>c.id===badge.linkedCardId);
+        if (card) ctx+=`\n[${card.type.toUpperCase()}] ${card.title}: ${card.desc}\nDétails: ${JSON.stringify(card.details)}\n`;
+        else if (badge) ctx+=`\n[${badge.type.toUpperCase()}] ${badge.title}: ${badge.desc}\n`;
+      });
+      return ctx;
+    };
+
+    // --- Global mention dropdown (single, optimized) ---
+    const GlobalMention = {
+      activeInput:null, startPos:-1, debounce:null,
+      init() {
+        // delegated input listener
+        document.addEventListener('input', (e)=>{
+          const el = e.target;
+          if (!el.matches || !el.matches('input[type=text], input[type=search], textarea, [contenteditable=true]')) return;
+          clearTimeout(this.debounce);
+          this.debounce = setTimeout(()=> this.onInput(el), 120);
+        });
+        document.addEventListener('keydown', (e)=>{
+          const dd = document.getElementById('global-mention-dropdown');
+          if (!dd) return;
+          if (e.key==='Escape'){ dd.remove(); }
+          if (e.key==='ArrowDown' || e.key==='ArrowUp'){
+            e.preventDefault();
+            const items = dd.querySelectorAll('.mention-item');
+            let idx = Array.from(items).findIndex(i=>i.classList.contains('active'));
+            if (e.key==='ArrowDown') idx = Math.min(idx+1, items.length-1);
+            else idx = Math.max(idx-1, 0);
+            items.forEach(i=>i.classList.remove('active'));
+            if (items[idx]){ items[idx].classList.add('active'); items[idx].scrollIntoView({block:'nearest'}); }
+          }
+          if (e.key==='Enter'){
+            const active = dd.querySelector('.mention-item.active');
+            if (active){ e.preventDefault(); this.selectBadge(active.dataset.badgeId); }
+          }
+        });
+      },
+      getValueCursor(el){
+        if (el.isContentEditable) {
+          const sel = window.getSelection();
+          if (!sel||sel.rangeCount===0) return {value: el.innerText||'', cursor:(el.innerText||'').length};
+          const range = sel.getRangeAt(0);
+          const pre = range.cloneRange(); pre.selectNodeContents(el); pre.setEnd(range.endContainer, range.endOffset);
+          return {value: el.innerText||el.textContent||'', cursor: pre.toString().length};
+        } else {
+          return {value: el.value||'', cursor: el.selectionStart||0};
+        }
+      },
+      onInput(el){
+        const {value, cursor} = this.getValueCursor(el);
+        const before = value.substring(0, cursor);
+        const at = before.lastIndexOf('@');
+        if (at===-1){ this.hide(); return; }
+        const after = before.substring(at+1);
+        if (after.length>30 || (after.includes(' ') && after.split(' ')[0].length < after.length-15)){ this.hide(); return; }
+        const query = after.split(/[\s\n]/)[0];
+        this.activeInput = el; this.startPos = at;
+        this.show(query, el);
+      },
+      show(query, anchor){
+        this.hide();
+        const results = BadgeRegistry.search(query);
+        if (results.length===0 && query.length===0) return;
+        const rect = anchor.getBoundingClientRect();
+        const dd = document.createElement('div');
+        dd.id = 'global-mention-dropdown';
+        dd.className = 'mention-dropdown';
+        dd.style.top = (rect.bottom+6)+'px';
+        dd.style.left = rect.left+'px';
+        if (rect.bottom+320 > window.innerHeight){ dd.style.top = (rect.top-8)+'px'; dd.style.transform='translateY(-100%)'; }
+
+        const grouped = {};
+        results.forEach(b=>{ grouped[b.type]=grouped[b.type]||[]; grouped[b.type].push(b); });
+        const labels = {character:'👤 Personnages', location:'🗺️ Lieux', prop:'📦 Props', music:'🎵 Musique', note:'📝 Notes', square:'🔲 Cadres'};
+
+        let html = `<div style="font-size:9px; color:#9aa0a6; font-family:monospace; padding:6px; border-bottom:1px solid rgba(255,255,255,0.05); display:flex; justify-content:space-between;"><span>${results.length} résultats pour @${query||''}</span><span style="cursor:pointer;" onclick="document.getElementById('global-mention-dropdown')?.remove()">✕</span></div>`;
+        let has=false;
+        for(const [type, list] of Object.entries(grouped)){
+          if(list.length===0) continue; has=true;
+          html+=`<div class="mention-group-title">${labels[type]||type} (${list.length})</div>`;
+          list.slice(0,6).forEach(b=>{
+            html+=`<div class="mention-item" data-badge-id="${b.id}"><div class="mention-item-icon">${b.icon}</div><div class="mention-item-info"><div class="mention-item-title">${b.title}</div><div class="mention-item-sub">${b.type} • ${b.desc.substring(0,40)}</div></div><span style="font-size:9px; color:#d2a45a;">@</span></div>`;
+          });
+        }
+        if(!has) html+=`<div style="padding:14px; text-align:center; color:#9aa0a6; font-size:11px; font-family:monospace;">Aucun badge pour "${query}"<br><span style="font-size:10px; opacity:0.7;">Essaie @personnages, @lieu, @props</span></div>`;
+        dd.innerHTML = html;
+        document.body.appendChild(dd);
+        dd.querySelectorAll('.mention-item').forEach(it=>{
+          it.addEventListener('click', ()=> this.selectBadge(it.dataset.badgeId));
+        });
+        const first = dd.querySelector('.mention-item'); if(first) first.classList.add('active');
+      },
+      hide(){ const dd=document.getElementById('global-mention-dropdown'); if(dd) dd.remove(); },
+      selectBadge(badgeId){
+        const badge = BadgeRegistry.getAll().find(b=>b.id===badgeId || b.linkedCardId===badgeId);
+        if(!badge || !this.activeInput) return;
+        const el = this.activeInput;
+        const {value, cursor} = this.getValueCursor(el);
+        const before = value.substring(0, cursor);
+        const at = before.lastIndexOf('@');
+        if(at===-1) return;
+        const after = value.substring(cursor);
+        const newVal = value.substring(0, at) + '@' + badge.title + ' ' + after;
+        const newCursor = at + badge.title.length + 2;
+
+        if(el.isContentEditable){
+          el.innerText = newVal;
+          // place cursor at end for simplicity
+          const sel = window.getSelection(); if(sel){ const r=document.createRange(); r.selectNodeContents(el); r.collapse(false); sel.removeAllRanges(); sel.addRange(r); }
+          el.dispatchEvent(new Event('input',{bubbles:true}));
+        } else {
+          el.value = newVal;
+          el.setSelectionRange(newCursor, newCursor);
+          el.dispatchEvent(new Event('input',{bubbles:true}));
+        }
+        // Update usage
+        BadgeRegistry.update(badge.id, {usageCount:(badge.usageCount||0)+1});
+        // If in copilot input, also add to attached ids
+        if (el.id==='copilot-input-box' && app.ensureCopilotConsoleExtended){
+          app.ensureCopilotConsoleExtended();
+          const idToAdd = badge.linkedCardId || badge.id;
+          if(!app.copilotConsole.mentionedCardIds.includes(idToAdd)) app.copilotConsole.mentionedCardIds.push(idToAdd);
+          if(!app.copilotConsole.attachedCardIds.includes(idToAdd)) app.copilotConsole.attachedCardIds.push(idToAdd);
+          app.copilotConsole.attachedCardId = idToAdd;
+          app.renderCopilotAttachments && app.renderCopilotAttachments();
+        }
+        this.hide();
+        el.focus();
+      }
+    };
+    window.GlobalMention = GlobalMention;
+    GlobalMention.init();
+
+    // --- Fix renderCopilotChat to persist badges ---
+    app.renderCopilotChat = function() {
+      const vp = document.getElementById('copilot-chat-messages');
+      if(!vp) return;
+      vp.innerHTML='';
+      this.copilotMessages.forEach((msg, idx)=>{
+        const row = document.createElement('div');
+        row.style.display='flex';
+        row.style.justifyContent = msg.sender==='user'?'flex-end':'flex-start';
+        row.style.width='100%';
+        const bubble = document.createElement('div');
+        bubble.className = `chat-bubble ${msg.sender==='user'?'user':'ai'}`;
+
+        const esc = (s)=>String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+        let html = esc(msg.text||'');
+        const resolve = (id)=>{
+          let badge = BadgeRegistry.getAll().find(b=>b.id===id || b.linkedCardId===id);
+          let card = this.storyboardCards.find(c=>c.id===id);
+          if(!card && badge && badge.linkedCardId) card = this.storyboardCards.find(c=>c.id===badge.linkedCardId);
+          if(card){
+            const meta = this.getCardMeta(card);
+            return {id:card.id, title:card.title, icon:meta.icon, color:meta.color, type:card.type, badge, card};
+          } else if(badge){
+            return {id:badge.id, title:badge.title, icon:badge.icon, color:badge.color, type:badge.type, badge};
+          }
+          const shot = (this.googleFlowShots||[]).find(s=>s.id===id);
+          if(shot) return {id:shot.id, title:shot.title, icon:'⚡', color:'flow', type:'flow'};
+          return null;
+        };
+        const resolved = (msg.attachedCardIds||[]).map(resolve).filter(Boolean);
+
+        // Replace @Title with badge span (persistent)
+        resolved.forEach(it=>{
+          const safe = it.title.replace(/[.*+?^${}()|[\]\\]/g,'\\$&');
+          const re = new RegExp('@'+safe, 'gi');
+          if(re.test(html)){
+            const badgeHTML = `<span class="inline-mention ${it.color}" data-card-id="${it.id}" onclick="app.showCardDetailPopup('${it.id}', event)">${it.icon} ${esc(it.title)}</span>`;
+            html = html.replace(re, badgeHTML);
+          }
+        });
+        // Alias @personnages etc -> group
+        for(const alias of Object.keys(aliasMap)){
+          const re = new RegExp('@'+alias+'\\b','gi');
+          if(re.test(html)){
+            const type = aliasMap[alias];
+            const group = resolved.filter(r=>r.type===type);
+            if(group.length>0){
+              const badgesHTML = group.slice(0,4).map(g=>`<span class="inline-mention ${g.color}" onclick="app.showCardDetailPopup('${g.id}', event)">${g.icon} ${esc(g.title)}</span>`).join(' ');
+              html = html.replace(re, `<span style="font-family:monospace; font-size:10px; color:#d2a45a; border:1px dashed #d2a45a; padding:2px 6px; border-radius:8px;">@${alias} (${group.length})</span> ${badgesHTML}`);
+            }
+          }
+        }
+
+        html = html.replace(/\n/g,'<br>');
+        const content = document.createElement('div');
+        content.style.whiteSpace='pre-wrap'; content.style.wordBreak='break-word';
+        content.innerHTML = html;
+        bubble.appendChild(content);
+
+        if(msg.syncData){
+          const c = document.createElement('div'); c.className='chat-sync-card';
+          c.innerHTML=`<div class="chat-sync-title">🎬 DIRECTIVES</div><div><button class="btn-action primary" style="width:100%; font-size:11px; padding:6px; margin-top:8px;" onclick="app.applyCopilotSync(${idx})">Sync</button></div>`;
+          bubble.appendChild(c);
+        }
+
+        if(resolved.length>0){
+          const att = document.createElement('div');
+          att.style.cssText='display:flex; gap:6px; flex-wrap:wrap; margin-top:10px; padding-top:8px; border-top:1px solid rgba(255,255,255,0.06);';
+          att.innerHTML = `<div style="width:100%; font-size:9px; color:#9aa0a6; font-family:monospace; margin-bottom:4px;">📌 ${resolved.length} BADGE(S) - CLIQUER POUR VOIR DÉTAILS</div>` +
+            resolved.map(it=>`<span class="inline-mention ${it.color}" style="cursor:pointer;" onclick="app.showCardDetailPopup('${it.id}', event)">${it.icon} ${esc(it.title)} 👁</span>`).join('');
+          bubble.appendChild(att);
+        }
+
+        if(msg.imageUrl){
+          const img=document.createElement('img');
+          img.src=msg.imageUrl; img.style.cssText='width:100%; max-width:320px; border-radius:6px; margin-top:8px; border:1px solid #282833; cursor:pointer;';
+          img.onclick=()=>window.open(msg.imageUrl,'_blank');
+          img.onerror=()=>{img.style.display='none';};
+          bubble.appendChild(img);
+        }
+        if(msg.videoUrl){
+          const vid=document.createElement('video');
+          vid.src=msg.videoUrl; vid.controls=true; vid.style.cssText='width:100%; max-width:320px; border-radius:6px; margin-top:8px; border:1px solid #282833;';
+          bubble.appendChild(vid);
+        } else if(msg.videoPlaceholder){
+          const box=document.createElement('div');
+          box.style.cssText='width:100%; max-width:320px; height:120px; background:#0c0c10; border-radius:6px; margin-top:8px; display:flex; align-items:center; justify-content:center; border:1px solid #49c490;';
+          box.innerHTML='<span style="font-size:11px; color:#49c490; font-family:monospace;">🎬 VIDEO REHEARSAL READY</span>';
+          bubble.appendChild(box);
+        }
+
+        const time=document.createElement('div');
+        time.style.cssText='font-size:9px; color:#9aa0a6; font-family:monospace; margin-top:6px; opacity:0.6;';
+        time.innerText=msg.time||'';
+        bubble.appendChild(time);
+
+        row.appendChild(bubble);
+        vp.appendChild(row);
+      });
+      vp.scrollTop = vp.scrollHeight;
+    };
+
+    // --- Generations Hub (simplified, performant) ---
+    const GenerationsHub = {
+      KEY:'generations_hub_v2',
+      getAll(){ return dbGet(this.KEY, []); },
+      save(list){ dbSet(this.KEY, list); },
+      add(item){
+        const list=this.getAll();
+        list.unshift({id:'gen_'+Date.now(), createdAt:Date.now(), ...item});
+        if(list.length>40) list.pop();
+        this.save(list);
+        this.render();
+      },
+      render(){
+        const c=document.getElementById('generations-hub-list');
+        if(!c) return;
+        const list=this.getAll();
+        if(list.length===0){ c.innerHTML='<div style="text-align:center; padding:16px; color:#9aa0a6; font-size:11px; font-family:monospace;">Aucune génération</div>'; return; }
+        c.innerHTML = list.slice(0,10).map(it=>`
+          <div style="background:#121216; border:1px solid #282833; border-radius:8px; padding:8px; display:flex; gap:8px; align-items:center;">
+            <div style="width:40px; height:40px; background:#0c0c10; border-radius:6px; display:flex; align-items:center; justify-content:center; overflow:hidden; flex-shrink:0;">
+              ${it.type==='image' && it.url?`<img src="${it.url}" style="width:100%; height:100%; object-fit:cover;">`:`<span>${it.type==='video'?'🎬':'📝'}</span>`}
+            </div>
+            <div style="flex:1; min-width:0;">
+              <div style="font-size:10px; color:#d2a45a; font-family:monospace; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">${(it.prompt||it.text||'').substring(0,40)}</div>
+              <div style="font-size:9px; color:#9aa0a6;">${new Date(it.createdAt).toLocaleTimeString()}</div>
+            </div>
+            <button class="btn-action" style="font-size:8px; padding:3px 6px;" onclick="app.generationsHub.addToChalkboard('${it.id}')">➕</button>
+          </div>
+        `).join('');
+      },
+      addToChalkboard(genId){
+        const item = this.getAll().find(g=>g.id===genId);
+        if(!item) return;
+        const id='card_'+Date.now();
+        const card={id, type:'prop', title: (item.prompt||'Génération').substring(0,24), desc: item.prompt||item.text||'', details:{source:'Hub'}, image: item.type==='image'?item.url:null, video: item.type==='video'?true:null, x:Math.random()*200+80, y:Math.random()*200+80};
+        app.storyboardCards.push(card);
+        dbSet('storyboard_cards_v1', app.storyboardCards);
+        app.renderStoryboardCards();
+        alert('Ajouté à Chalkboard');
+      }
+    };
+    app.generationsHub = GenerationsHub;
+    window.GenerationsHub = GenerationsHub;
+
+    // Patch sendCopilotMessage to use correct DB and persist badges
+    app.sendCopilotMessage = async function(){
+      const input = document.getElementById('copilot-input-box');
+      if(!input) return;
+      const text = input.value.trim();
+      this.ensureCopilotConsoleExtended();
+
+      const mentionIds = this.parseMentionsFromText(text);
+      let allIds = [...new Set([...(this.copilotConsole.attachedCardIds||[]), ...(this.copilotConsole.mentionedCardIds||[]), ...mentionIds])];
+      const hasFile = !!this.copilotConsole.attachedFile;
+      if(!text && !hasFile && allIds.length===0) return;
+
+      const contextCards = allIds.map(id=> this.storyboardCards.find(c=>c.id===id) || BadgeRegistry.getAll().find(b=>b.id===id || b.linkedCardId===id)).filter(Boolean);
+      const primary = contextCards[0];
+
+      this.copilotMessages.push({
+        sender:'user',
+        text: text||'(pièce jointe)',
+        time: new Date().toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'}),
+        attachedCardIds: allIds,
+        attachedFileName: this.copilotConsole.attachedFile?this.copilotConsole.attachedFile.name:null
+      });
+
+      input.value='';
+      this.copilotConsole.mentionedCardIds=[]; this.copilotConsole.attachedCardIds=[]; this.copilotConsole.attachedCardId=null;
+      this.renderCopilotChat(); this.renderCopilotAttachments && this.renderCopilotAttachments();
+
+      const vp = document.getElementById('copilot-chat-messages');
+      const typing = document.createElement('div'); typing.id='copilot-typing';
+      typing.innerHTML = `<div class="chat-bubble ai typing" style="display:flex; gap:8px; align-items:center;"><span class="hud-loader-spinner"></span><span style="font-size:10px; color:#9aa0a6; font-family:monospace;">${this.copilotConsole.mode==='image'?'GÉNÉRATION IMAGE...': this.copilotConsole.mode==='video'?'GÉNÉRATION VIDÉO...':'ANALYSE...'}</span></div>`;
+      if(vp){ vp.appendChild(typing); vp.scrollTop=vp.scrollHeight; }
+
+      try{
+        if(this.copilotConsole.mode==='image'){
+          await this.copilotGenerateImageMessage(text, primary, allIds);
+        } else if(this.copilotConsole.mode==='video'){
+          await this.copilotGenerateVideoMessage(text, primary, allIds);
+        } else {
+          setTimeout(()=>{
+            const t=document.getElementById('copilot-typing'); if(t) t.remove();
+            this.generateCopilotResponse(text, primary, allIds);
+          }, 700);
+        }
+      }catch(err){
+        const t=document.getElementById('copilot-typing'); if(t) t.remove();
+        this.copilotMessages.push({sender:'ai', text:'⚠️ Erreur: '+err.message, time: new Date().toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'})});
+        this.renderCopilotChat();
+      }
+    };
+
+    // Optimized image generation (no HEAD fetch to avoid lag)
+    app.copilotGenerateImageMessage = async function(text, context, allIds){
+      const quality = this.copilotConsole.quality||'standard';
+      const ratio = this.copilotConsole.imageRatio||'16:9';
+      const provider = this.copilotConsole.provider||'pollinations';
+      const model = this.copilotConsole.aiEngine||'flux';
+      let fullPrompt = text||'Cinematic scene';
+      if(allIds && allIds.length>0) fullPrompt += this.buildContextFromMentions(allIds);
+      else if(context) fullPrompt += ` Contexte ${context.title}: ${context.desc||''}`;
+
+      let imageUrl = null;
+      const falKey = dbGet('key_fal','');
+      const def = (()=>{ try{ return ({'flux/schnell':1}) }catch{return{}} })();
+
+      if(provider==='pollinations' || !falKey || provider==='openai' && !dbGet('key_openai','')){
+        // Use pollinations directly, no slow HEAD request
+        const map = {'16:9':[1024,576],'2.39:1':[1200,502],'4:3':[1024,768],'1:1':[1024,1024]};
+        const [w,h] = map[ratio]||[1024,576];
+        const seed = Math.floor(Math.random()*1000000);
+        const modelMap = {draft:'turbo', standard:'flux', high:'flux-pro'};
+        const m = modelMap[quality]||model||'flux';
+        imageUrl = `https://image.pollinations.ai/p/${encodeURIComponent(fullPrompt.slice(0,800))}?width=${w}&height=${h}&nologo=true&seed=${seed}&model=${m}`;
+        this.logTerminal && this.logTerminal(`[IMAGE] Pollinations ${m} ${w}x${h}`);
+      } else if(falKey && (provider==='fal' || provider==='openai')){
+        try{
+          const res = await fetch('https://queue.fal.run/fal-ai/flux/schnell',{
+            method:'POST', headers:{Authorization:`Key ${falKey}`, 'Content-Type':'application/json'},
+            body: JSON.stringify({prompt: fullPrompt.slice(0,800), image_size: ratio==='16:9'?'landscape_16_9':'square', num_inference_steps:4, sync_mode:true})
+          });
+          const data = await res.json();
+          if(data.images && data.images[0]) imageUrl = data.images[0].url;
+        }catch(e){ this.logTerminal && this.logTerminal(`[IMAGE ERROR] ${e.message}`); }
+      }
+
+      const t=document.getElementById('copilot-typing'); if(t) t.remove();
+      if(!imageUrl){
+        const pseudo={title:fullPrompt.slice(0,20), type:'note'};
+        this.generateCanvasSketchPlaceholder(pseudo);
+        imageUrl = pseudo.image;
+      }
+
+      this.copilotMessages.push({
+        sender:'ai',
+        text:`🖼️ Image générée (${ratio}, ${quality}) via ${provider}/${model} - ${allIds?allIds.length:0} badge(s)`,
+        time:new Date().toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'}),
+        imageUrl, attachedCardIds: allIds
+      });
+      this.renderCopilotChat();
+      GenerationsHub.add({type:'image', prompt:text, url:imageUrl, badgeIds: allIds});
+    };
+
+    app.copilotGenerateVideoMessage = async function(text, context, allIds){
+      const duration = this.copilotConsole.videoDuration||4;
+      const ratio = this.copilotConsole.imageRatio||'16:9';
+      const provider = this.copilotConsole.provider||'kie';
+      let fullPrompt = text||'Cinematic';
+      if(allIds && allIds.length>0) fullPrompt+=this.buildContextFromMentions(allIds);
+
+      let videoUrl = null;
+      const kieKey = dbGet('key_kie','');
+      if(kieKey && (provider==='kie' || provider==='fal')){
+        try{
+          this.logTerminal && this.logTerminal(`[VIDEO] Kie Kling ${duration}s ${ratio}...`);
+          const createRes = await fetch('https://api.kie.ai/api/v1/kling/generate',{
+            method:'POST', headers:{Authorization:`Bearer ${kieKey}`, 'Content-Type':'application/json'},
+            body: JSON.stringify({model: dbGet('model_kie','kling-v1.5-pro')||'kling-v1.5-pro', prompt: fullPrompt.slice(0,800), duration, aspect_ratio: ratio})
+          });
+          const data = await createRes.json();
+          const taskId = data.taskId||data.task_id||data.id;
+          if(taskId){
+            // Poll simplified
+            for(let i=0;i<20;i++){
+              await new Promise(r=>setTimeout(r,3000));
+              try{
+                const res = await fetch(`https://api.kie.ai/api/v1/tasks/${taskId}`, {headers:{Authorization:`Bearer ${kieKey}`}});
+                const jd = await res.json();
+                if(jd.status==='completed' || jd.state==='success'){
+                  videoUrl = jd.videoUrl || jd.result?.video_url || jd.output?.video_url;
+                  break;
+                }
+                if(jd.status==='failed') break;
+              }catch{}
+            }
+          }
+        }catch(e){ this.logTerminal && this.logTerminal(`[VIDEO ERROR] ${e.message}`); }
+      }
+
+      const t=document.getElementById('copilot-typing'); if(t) t.remove();
+      if(videoUrl){
+        this.copilotMessages.push({sender:'ai', text:`🎬 Vidéo générée via ${provider} (${duration}s) - ${text}`, time:new Date().toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'}), videoUrl, attachedCardIds: allIds});
+      } else {
+        await new Promise(r=>setTimeout(r,600));
+        this.copilotMessages.push({sender:'ai', text:`🎬 Vidéo simulée (${duration}s) - ${text} (ajoute clé Kie dans Settings pour vrai rendu)`, time:new Date().toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'}), videoPlaceholder:true, attachedCardIds: allIds});
+      }
+      this.renderCopilotChat();
+      GenerationsHub.add({type:'video', prompt:text, url:videoUrl, badgeIds: allIds});
+    };
+
+    app.generateCopilotResponse = function(query, context, allIds){
+      if(allIds && allIds.length>0){
+        const items = allIds.map(id=>{
+          let c=this.storyboardCards.find(x=>x.id===id);
+          let b=BadgeRegistry.getAll().find(x=>x.id===id || x.linkedCardId===id);
+          if(!c && b && b.linkedCardId) c=this.storyboardCards.find(x=>x.id===b.linkedCardId);
+          return c||b;
+        }).filter(Boolean);
+        let reply = `📎 ${items.length} badge(s) détecté(s):\n\n`;
+        items.forEach(it=>{ reply+=`${it.icon||'📌'} ${it.title} (${it.type||''}) - ${(it.desc||'').substring(0,80)}\n`; });
+        reply+=`\n🎬 Prompt enrichi: Cinematic ${items.map(i=>i.title).join(', ')}, ${query||'scene'}, ARRI Alexa 35, Cooke S4, Kodak grading\n\n💡 Clique sur les badges ci-dessous pour détails. Passe en IMAGE/VIDEO pour générer avec ces badges.`;
+        this.copilotMessages.push({sender:'ai', text:reply, time:new Date().toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'}), attachedCardIds: allIds});
+        this.renderCopilotChat();
+        GenerationsHub.add({type:'text', prompt:query, text:reply, badgeIds: allIds});
+        return;
+      }
+      // fallback heuristic
+      const q=(query||'').toLowerCase();
+      let reply="Je suis ton Co-Pilot. ";
+      if(q.includes('lumi')||q.includes('light')) reply+='Utilise low-key lighting avec ARRI Alexa 35 et Cooke S4 pour du drame.';
+      else if(q.includes('camer')) reply+='Essaie Sony Venice 2 en 6K avec 50mm pour un rendu organique.';
+      else reply+='Tape @ pour mentionner un badge (ex: @personnages) ou passe en mode IMAGE.';
+      this.copilotMessages.push({sender:'ai', text:reply, time:new Date().toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'}), attachedCardIds: allIds});
+      this.renderCopilotChat();
+      GenerationsHub.add({type:'text', prompt:query, text:reply, badgeIds: allIds});
+    };
+
+    // --- Dynamic Provider/IA dropdowns (fixed with correct DB) ---
+    const ensureProviderSelect = ()=>{
+      let sel=document.getElementById('copilot-select-provider');
+      if(!sel){
+        const aiSel=document.getElementById('copilot-select-ai');
+        if(!aiSel) return null;
+        sel=document.createElement('select');
+        sel.id='copilot-select-provider';
+        sel.className='input-text';
+        sel.style.cssText='font-size:10px; padding:4px 8px; background:#1e1e26; border:1px solid #282833; width:auto; min-width:130px;';
+        aiSel.parentNode.insertBefore(sel, aiSel);
+      }
+      return sel;
+    };
+    function refreshProviders(){
+      const mode = app.copilotConsole.mode||'chat';
+      const onlyAvail = document.getElementById('chk-only-available') ? document.getElementById('chk-only-available').checked : true;
+      const providers = (()=>{
+        let list=[];
+        for(const [k,d] of Object.entries(PROVIDER_DEFS)){
+          if(!d.modes.includes(mode)) continue;
+          const avail = hasKey(d);
+          if(onlyAvail && !avail) continue;
+          list.push({key:k, ...d, available:avail});
+        }
+        list.sort((a,b)=> (a.available===b.available?0: a.available?-1:1));
+        return list;
+      })();
+
+      const sel = ensureProviderSelect();
+      if(!sel) return;
+      const saved = dbGet('copilot_last_provider_'+mode, null) || app.copilotConsole.provider;
+      sel.innerHTML='';
+      if(providers.length===0){
+        const o=document.createElement('option'); o.value=''; o.textContent='Aucun provider configuré - décoche filtre ou ajoute clé'; sel.appendChild(o);
+        return;
+      }
+      providers.forEach(p=>{
+        const o=document.createElement('option');
+        o.value=p.key;
+        o.textContent = `${p.icon} ${p.label} ${p.available?'●':'○'}`;
+        if(p.key===saved) o.selected=true;
+        sel.appendChild(o);
+      });
+      if(!sel.value && providers.length>0) sel.value=providers[0].key;
+      app.copilotConsole.provider = sel.value;
+      refreshModels(sel.value, mode);
+
+      const badge=document.getElementById('provider-status-badge');
+      if(badge){
+        const avail = providers.filter(p=>p.available).length;
+        badge.textContent = `${avail} dispo`;
+        badge.style.background = avail>0?'rgba(73,196,144,0.1)':'rgba(255,69,58,0.1)';
+        badge.style.borderColor = avail>0?'#49c490':'#ff453a';
+        badge.style.color = avail>0?'#49c490':'#ff453a';
+      }
+    }
+    function refreshModels(providerKey, mode){
+      const aiSel=document.getElementById('copilot-select-ai');
+      if(!aiSel) return;
+      const def=PROVIDER_DEFS[providerKey];
+      if(!def) return;
+      let models=[];
+      if(mode==='chat') models=def.chatModels||[];
+      else if(mode==='image') models=def.imageModels||[];
+      else if(mode==='video') models=def.videoModels||[];
+
+      const saved = dbGet(`model_${providerKey}_${mode}`, null);
+      aiSel.innerHTML='';
+      if(models.length===0){
+        const o=document.createElement('option'); o.value=''; o.textContent=`Aucun modèle ${mode} pour ${def.label}`; aiSel.appendChild(o);
+        return;
+      }
+      models.forEach(m=>{
+        const o=document.createElement('option');
+        o.value=m; o.textContent=m;
+        if(m===saved) o.selected=true;
+        aiSel.appendChild(o);
+      });
+      if(!aiSel.value && models.length>0) aiSel.value=models[0];
+      app.copilotConsole.aiEngine = aiSel.value;
+      aiSel.onchange = ()=>{
+        app.copilotConsole.aiEngine=aiSel.value;
+        dbSet(`model_${providerKey}_${mode}`, aiSel.value);
+      };
+    }
+
+    // UI filter toggle
+    if(!document.getElementById('copilot-filter-toggle')){
+      const row=document.querySelector('#copilot-console div[style*="flex-wrap"]');
+      if(row){
+        const div=document.createElement('div');
+        div.id='copilot-filter-toggle';
+        div.style.cssText='display:flex; gap:6px; align-items:center; margin-left:6px;';
+        div.innerHTML=`<label style="display:flex; align-items:center; gap:4px; font-size:9px; color:#9aa0a6; font-family:monospace; cursor:pointer;"><input type="checkbox" id="chk-only-available" checked style="accent-color:#d2a45a;"> 🔑 Seulement configurés</label><span id="provider-status-badge" class="provider-status" style="background:rgba(73,196,144,0.1); border:1px solid #49c490; color:#49c490;">0 dispo</span><button class="btn-action" style="font-size:8px; padding:2px 6px;" onclick="app.refreshAllCopilotDropdowns()">↻</button>`;
+        row.appendChild(div);
+        document.getElementById('chk-only-available').addEventListener('change', refreshProviders);
+      }
+    }
+
+    app.refreshAllCopilotDropdowns = ()=>{ refreshProviders(); if(app.renderCopilotConsoleSelectors) app.renderCopilotConsoleSelectors(); };
+    window.refreshAllCopilotDropdowns = app.refreshAllCopilotDropdowns;
+
+    const origSetMode = app.setCopilotMode;
+    app.setCopilotMode = function(mode, btn){
+      if(origSetMode) origSetMode.call(this, mode, btn);
+      this.copilotConsole.mode=mode;
+      setTimeout(refreshProviders, 80);
+    };
+    const origSaveSettings = app.saveSettings;
+    app.saveSettings = function(){
+      if(origSaveSettings) origSaveSettings.call(this);
+      setTimeout(()=>{ refreshProviders(); app.logTerminal && app.logTerminal('[SETTINGS] Clés mises à jour - listes rafraîchies'); }, 400);
+    };
+    const origNavigate = app.navigateTo;
+    app.navigateTo = function(screenId){
+      if(origNavigate) origNavigate.call(this, screenId);
+      if(screenId==='copilot'){ setTimeout(refreshProviders, 200); GenerationsHub.render(); }
+      if(screenId==='badges'){ setTimeout(()=>{ app.badgeManager && app.badgeManager.renderList(); GenerationsHub.render(); }, 150); }
+    };
+
+    // Badge Manager (lightweight, single instance)
+    if(!app.badgeManager){
+      app.badgeManager = {
+        currentId:null,
+        filter:'all',
+        renderList(){
+          const container=document.getElementById('badge-list-container');
+          if(!container) return;
+          const search=document.getElementById('badge-search');
+          const q = search?search.value.toLowerCase():'';
+          let badges=BadgeRegistry.getAll();
+          if(this.filter!=='all') badges=badges.filter(b=>b.type===this.filter);
+          if(q) badges=badges.filter(b=>b.title.toLowerCase().includes(q)||b.desc.toLowerCase().includes(q));
+          badges.sort((a,b)=>(b.usageCount||0)-(a.usageCount||0));
+
+          container.innerHTML = badges.map(b=>{
+            const sel = this.currentId===b.id;
+            return `<div class="agent-item-row ${sel?'selected':''}" style="flex-direction:column; align-items:stretch; gap:6px; padding:10px; ${sel?'border-color:#d2a45a; background:rgba(210,164,90,0.08);':''}" onclick="app.badgeManager.select('${b.id}')">
+              <div style="display:flex; justify-content:space-between; align-items:center;"><div style="display:flex; align-items:center; gap:8px;"><span style="width:28px; height:28px; border-radius:6px; background:rgba(210,164,90,0.1); border:1px solid rgba(210,164,90,0.2); display:flex; align-items:center; justify-content:center;">${b.icon}</span><div><div style="font-size:12px; font-weight:700; color:#fff;">${b.title}</div><div style="font-size:9px; color:#d2a45a; font-family:monospace; text-transform:uppercase;">${b.type} • ${b.usageCount||0}x</div></div></div><div style="display:flex; gap:4px;"><span style="font-size:10px; cursor:pointer; padding:2px 6px; border-radius:4px; background:#1e1e26; border:1px solid #282833;" onclick="event.stopPropagation(); app.badgeManager.duplicate('${b.id}')">⎘</span><span style="font-size:10px; cursor:pointer; padding:2px 6px; border-radius:4px; background:rgba(255,69,58,0.1); border:1px solid rgba(255,69,58,0.3); color:#ff453a;" onclick="event.stopPropagation(); app.badgeManager.delete('${b.id}')">✕</span></div></div>
+              <div style="font-size:10px; color:#9aa0a6; line-height:1.3; display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical; overflow:hidden;">${b.desc||'Pas de description'}</div>
+              <div style="display:flex; gap:4px; margin-top:4px;"><span style="font-size:8px; padding:2px 6px; border-radius:10px; background:rgba(210,164,90,0.12); border:1px solid #d2a45a; color:#d2a45a; font-family:monospace;">@${b.title}</span></div>
+            </div>`;
+          }).join('') || `<div style="text-align:center; padding:20px; color:#9aa0a6; font-size:11px; font-family:monospace;">Aucun badge</div>`;
+
+          const stats=document.getElementById('badge-stats');
+          if(stats){
+            const all=BadgeRegistry.getAll();
+            stats.innerHTML=`Total: <strong style="color:#fff;">${all.length}</strong><br>Utilisations @: <strong style="color:#d2a45a;">${all.reduce((s,b)=>s+(b.usageCount||0),0)}</strong>`;
+          }
+        },
+        select(id){
+          this.currentId=id;
+          const b=BadgeRegistry.getAll().find(x=>x.id===id);
+          if(!b) return;
+          this.renderList();
+          const insp=document.getElementById('badge-inspector');
+          if(!insp) return;
+          insp.innerHTML=`
+            <div style="display:flex; gap:16px; flex-wrap:wrap;">
+              <div style="width:140px; height:140px; background:#0c0c10; border-radius:12px; border:1px solid #282833; display:flex; align-items:center; justify-content:center; overflow:hidden; position:relative;">
+                ${b.image?`<img src="${b.image}" style="width:100%; height:100%; object-fit:cover;">`:`<span style="font-size:36px; opacity:0.3;">${b.icon}</span>`}
+                <div style="position:absolute; bottom:4px; left:4px; background:rgba(0,0,0,0.7); padding:2px 6px; border-radius:4px; font-size:8px; color:#fff; font-family:monospace;">@${b.title}</div>
+              </div>
+              <div style="flex:1; display:flex; flex-direction:column; gap:10px; min-width:240px;">
+                <div class="custom-input-group"><span class="field-label">Titre (après @)</span><input type="text" id="badge-edit-title" class="input-text" value="${b.title}" style="background:#1e1e26;"></div>
+                <div style="display:grid; grid-template-columns:1fr 1fr; gap:10px;"><div class="custom-input-group"><span class="field-label">Type</span><select id="badge-edit-type" class="input-text" style="background:#1e1e26;"><option value="character" ${b.type==='character'?'selected':''}>👤 Personnage</option><option value="location" ${b.type==='location'?'selected':''}>🗺️ Lieu</option><option value="prop" ${b.type==='prop'?'selected':''}>📦 Prop</option><option value="music" ${b.type==='music'?'selected':''}>🎵 Musique</option><option value="note" ${b.type==='note'?'selected':''}>📝 Note</option></select></div><div class="custom-input-group"><span class="field-label">Icône</span><input type="text" id="badge-edit-icon" class="input-text" value="${b.icon}" style="background:#1e1e26;" maxlength="2"></div></div>
+                <div class="custom-input-group"><span class="field-label">Description</span><textarea id="badge-edit-desc" class="input-text" style="background:#1e1e26; height:70px; resize:none;">${b.desc||''}</textarea></div>
+                <div style="display:flex; gap:8px;"><button class="btn-action primary" style="flex:1;" onclick="app.badgeManager.save()">💾 Sauver</button><button class="btn-action" style="flex:1;" onclick="app.badgeManager.test('${b.id}')">🧪 Tester @</button></div>
+              </div>
+            </div>`;
+        },
+        save(){
+          if(!this.currentId) return;
+          const title=document.getElementById('badge-edit-title')?.value;
+          const type=document.getElementById('badge-edit-type')?.value;
+          const icon=document.getElementById('badge-edit-icon')?.value;
+          const desc=document.getElementById('badge-edit-desc')?.value;
+          if(!title) return;
+          const upd=BadgeRegistry.update(this.currentId, {title, type, icon:icon||'📌', desc, color:type});
+          // sync linked card
+          if(upd && upd.linkedCardId){
+            const card=app.storyboardCards.find(c=>c.id===upd.linkedCardId);
+            if(card){ card.title=upd.title; card.desc=upd.desc; dbSet('storyboard_cards_v1', app.storyboardCards); app.renderStoryboardCards(); }
+          }
+          this.renderList();
+          if(upd) this.select(upd.id);
+          alert(`Badge "${title}" sauvé ! Utilisable via @${title}`);
+        },
+        createNew(){
+          const b=BadgeRegistry.create({title:'Nouveau Badge '+(BadgeRegistry.getAll().length+1), type:'character', desc:'Description...', details:{}});
+          this.select(b.id); this.renderList();
+        },
+        delete(id){ if(!confirm('Supprimer ce badge ?')) return; BadgeRegistry.delete(id); if(this.currentId===id){ this.currentId=null; document.getElementById('badge-inspector').innerHTML='<div style="text-align:center; padding:40px; color:#9aa0a6; font-family:monospace; font-size:11px;">Badge supprimé</div>'; } this.renderList(); },
+        duplicate(id){ const b=BadgeRegistry.getAll().find(x=>x.id===id); if(!b) return; const dupe=BadgeRegistry.create({...b, title:b.title+' (copie)'}); this.select(dupe.id); this.renderList(); },
+        test(id){ const b=BadgeRegistry.getAll().find(x=>x.id===id); if(!b) return; app.navigateTo('copilot'); setTimeout(()=>{ const inp=document.getElementById('copilot-input-box'); if(inp){ inp.value=`@${b.title} `; inp.focus(); } },300); },
+        setFilter(f, btn){ this.filter=f; document.querySelectorAll('#badges-left-panel [data-filter]').forEach(b=>{ b.style.background='#1e1e26'; b.style.color='#fff'; }); if(btn){ btn.style.background='#d2a45a'; btn.style.color='#000'; } this.renderList(); }
+      };
+    }
+
+    // --- Render storyboard cards badge row ---
+    const origRenderCards = app.renderStoryboardCards;
+    app.renderStoryboardCards = function(){
+      if(origRenderCards) origRenderCards.call(this);
+      (this.storyboardCards||[]).forEach(card=>{
+        const el=document.getElementById(card.id);
+        if(!el || el.querySelector('.card-attached-badge-row')) return;
+        const meta=this.getCardMeta(card);
+        const row=document.createElement('div');
+        row.className='card-attached-badge-row';
+        row.innerHTML=`<div class="card-attached-badge" style="border-color:${meta.color==='character'?'#6398f7':meta.color==='location'?'#49c490':'#d2a45a'}; color:${meta.color==='character'?'#6398f7':meta.color==='location'?'#49c490':'#d2a45a'};" onclick="window.GlobalMention && window.GlobalMention.activeInput ? window.GlobalMention.selectBadge('${BadgeRegistry.getAll().find(b=>b.linkedCardId===card.id)?.id||''}') : (app.navigateTo('copilot'), document.getElementById('copilot-input-box') && (document.getElementById('copilot-input-box').value+=' @${card.title} ', document.getElementById('copilot-input-box').focus()))" title="@${card.title}"><span>${meta.icon}</span><span>@${card.title}</span></div>`;
+        el.appendChild(row);
+      });
+    };
+
+    // Create nav button and screen for badges if not exists
+    if(!document.querySelector('[data-screen="badges"]')){
+      const nav=document.querySelector('.sidebar-nav');
+      if(nav){
+        const btn=document.createElement('button');
+        btn.className='nav-btn'; btn.dataset.screen='badges'; btn.setAttribute('onclick',"app.navigateTo('badges')");
+        btn.innerHTML=`<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2L15.09 8.26L22 9L17 14.74L18.18 22L12 19.56L5.82 22L7 14.74L2 9L8.91 8.26L12 2Z"/></svg><span class="tooltip">Badge Manager</span>`;
+        const settingsBtn=nav.querySelector('[data-screen="settings"]');
+        nav.insertBefore(btn, settingsBtn);
+      }
+    }
+    if(!document.getElementById('screen-badges')){
+      const workspace=document.querySelector('.workspace');
+      if(workspace){
+        const screen=document.createElement('div');
+        screen.id='screen-badges'; screen.className='screen';
+        screen.innerHTML=`
+          <div class="panel-left" id="badges-left-panel" style="width:320px; min-width:320px;">
+            <div class="unpinned-strip"><span class="unpinned-strip-icon">📌</span><span class="unpinned-strip-text">BADGES</span></div>
+            <div class="panel-header" style="justify-content:space-between;">
+              <span class="panel-title">🏷️ BADGES <button class="help-icon-btn" onclick="app.showHelp('badges')" title="Comment ça marche ?">?</button></span>
+              <div style="display:flex; align-items:center; gap:6px;">
+                <button class="btn-action primary" style="font-size:10px; padding:4px 8px;" onclick="app.badgeManager.createNew()">＋ Nouveau</button>
+                <button class="pin-toggle-btn pinned" onclick="app.togglePanelPin(this)" title="Épingler la barre latérale">📌</button>
+              </div>
+            </div>
+            <div class="panel-body-scroll" style="padding:12px; display:flex; flex-direction:column; gap:10px;">
+              <input type="text" id="badge-search" class="input-text" placeholder="🔍 Rechercher..." style="background:#1e1e26; font-size:12px;" oninput="app.badgeManager.renderList()">
+              <div style="display:flex; gap:6px; flex-wrap:wrap;">
+                <button class="btn-action" data-filter="all" onclick="app.badgeManager.setFilter('all', this)" style="font-size:9px; padding:4px 8px; background:#d2a45a; color:#000;">Tous</button>
+                <button class="btn-action" data-filter="character" onclick="app.badgeManager.setFilter('character', this)" style="font-size:9px; padding:4px 8px;">👤 Perso</button>
+                <button class="btn-action" data-filter="location" onclick="app.badgeManager.setFilter('location', this)" style="font-size:9px; padding:4px 8px;">🗺️ Lieux</button>
+                <button class="btn-action" data-filter="prop" onclick="app.badgeManager.setFilter('prop', this)" style="font-size:9px; padding:4px 8px;">📦 Props</button>
+              </div>
+              <div id="badge-list-container" style="display:flex; flex-direction:column; gap:8px; max-height:55vh; overflow-y:auto;"></div>
+              <div id="badge-stats" style="font-size:10px; color:#9aa0a6; font-family:monospace; border-top:1px solid #282833; padding-top:8px; margin-top:8px;"></div>
+            </div>
+          </div>
+          <div class="panel-center" style="overflow-y:auto; background:#0a0a0c; display:flex; flex-direction:column;">
+            <div class="panel-header" style="justify-content:space-between;">
+              <span class="panel-title">BADGE EDITOR</span>
+              <div style="display:flex; align-items:center; gap:8px;">
+                <button class="btn-action" style="font-size:10px; padding:4px 8px;" onclick="app.badgeManager.createNew()">＋ Nouveau Badge</button>
+                <button class="btn-action primary" style="font-size:10px; padding:4px 8px;" onclick="app.badgeManager.save()">💾 Sauver</button>
+              </div>
+            </div>
+            <div class="panel-body-scroll" id="badge-inspector" style="padding:20px;"><div style="text-align:center; padding:40px; color:#9aa0a6; font-family:monospace; font-size:11px;">Sélectionne un badge ou crée-en un nouveau<br><br>🏷️<br><br>Tape @ partout dans l'app pour l'utiliser<br><br>💡 Astuce: tu peux épingler/désépingler les volets latéraux avec 📌</div></div>
+          </div>
+          <div class="panel-right" id="badges-right-panel" style="width:320px; min-width:320px;">
+            <div class="unpinned-strip"><span class="unpinned-strip-icon">📌</span><span class="unpinned-strip-text">GENERATIONS</span></div>
+            <div class="panel-header" style="justify-content:space-between;">
+              <span class="panel-title">GENERATIONS HUB <button class="help-icon-btn" onclick="app.showHelp('generations')" title="Comment ça marche ?">?</button></span>
+              <div style="display:flex; align-items:center; gap:6px;">
+                <button class="btn-action" style="font-size:9px; padding:3px 6px;" onclick="app.generationsHub && app.generationsHub.render()">↻</button>
+                <button class="pin-toggle-btn pinned" onclick="app.togglePanelPin(this)" title="Épingler la barre latérale">📌</button>
+              </div>
+            </div>
+            <div class="panel-body-scroll" style="display:flex; flex-direction:column; gap:12px;"><div id="generations-hub-list"></div></div>
+          </div>
+        `;
+        workspace.appendChild(screen);
+      }
+    }
+
+    // Initial calls (debounced, single)
+    setTimeout(()=>{
+      app.ensureCopilotConsoleExtended();
+      refreshProviders();
+      if(app.badgeManager) app.badgeManager.renderList();
+      GenerationsHub.render();
+      app.renderStoryboardCards();
+      console.log('[FINAL PATCH] Consolidated fix loaded ✅ DB prefix fixed, @ works, dynamic dropdowns, perf optimized');
+      app.logTerminal && app.logTerminal('[SYSTEM] Final patch consolidé installé - @ persistant, Provider/IA dynamiques, perf optimisée');
+    }, 600);
+
+  });
+})();
+
+  </script>
+
+  <!-- V8 TOOLBAR FULL FUNCTIONAL -->
+  <script>
+/** V8 - Chalkboard Full Functional Toolbar
+ * Fixes: selector with visual marquee multi-select, text with submenu colors/sizes, all tools draw on infinite board
+ */
+(() => {
+  const PREFIX = 'blacklaw_cinematic_';
+  const dbGet = (k,d)=>{ try{ const v=localStorage.getItem(PREFIX+k); return v?JSON.parse(v):d; }catch{ return d; } };
+  const dbSet = (k,v)=>{ try{ localStorage.setItem(PREFIX+k, JSON.stringify(v)); }catch(e){} };
+
+  function whenReady(cb){
+    if(window.app && document.getElementById('storyboard-grid')) cb(window.app);
+    else setTimeout(()=>whenReady(cb), 200);
+  }
+
+  whenReady((app) => {
+    console.log('[V8 TOOLBAR] Full functional init');
+
+    // CSS for new features
+    if(!document.getElementById('v8-toolbar-styles')){
+      const s=document.createElement('style');
+      s.id='v8-toolbar-styles';
+      s.textContent=`
+        .whiteboard-floating-toolbar { width:60px; padding:10px 6px; gap:7px; background:rgba(18,18,22,0.97); border:1px solid #282833; border-radius:16px; backdrop-filter:blur(14px); box-shadow:0 12px 32px rgba(0,0,0,0.8); z-index:150; max-height:90vh; overflow-y:auto; }
+        .toolbar-btn { width:42px; height:42px; border-radius:10px; font-size:17px; display:flex; align-items:center; justify-content:center; background:#1e1e26; border:1px solid #282833; color:#9aa0a6; cursor:pointer; position:relative; transition:all 0.15s; flex-shrink:0; }
+        .toolbar-btn:hover { border-color:#d2a45a; color:#d2a45a; background:rgba(210,164,90,0.14); transform:scale(1.05); }
+        .toolbar-btn.active { background:#d2a45a; color:#000; border-color:#d2a45a; box-shadow:0 0 16px rgba(210,164,90,0.5); }
+        .toolbar-separator { width:100%; height:1px; background:#282833; margin:7px 0; }
+        .toolbar-color-dot { width:18px; height:18px; border-radius:50%; cursor:pointer; border:2px solid transparent; transition:all 0.15s; }
+        .toolbar-color-dot.active { border-color:#fff; transform:scale(1.35); box-shadow:0 0 10px rgba(255,255,255,0.6); }
+        .whiteboard-text-annotation { position:absolute; min-width:100px; min-height:32px; padding:10px 14px; background:rgba(242,201,76,0.14); border:2px solid rgba(242,201,76,0.35); border-radius:10px; font-size:15px; font-family:var(--font-mono, monospace); cursor:text; outline:none; z-index:30; white-space:pre-wrap; word-break:break-word; box-shadow:0 8px 20px rgba(0,0,0,0.5); color:#f2c94c; line-height:1.4; }
+        .whiteboard-text-annotation:focus { border-color:#d2a45a; background:rgba(242,201,76,0.24); box-shadow:0 0 0 2px rgba(210,164,90,0.3); }
+        .whiteboard-text-annotation.selected { outline:3px solid #d2a45a; }
+        .whiteboard-image-annotation { position:absolute; z-index:28; border:2px solid #282833; border-radius:12px; overflow:hidden; box-shadow:0 12px 28px rgba(0,0,0,0.7); cursor:move; background:#0c0c10; transition:border-color 0.15s; }
+        .whiteboard-image-annotation:hover { border-color:#d2a45a; }
+        .whiteboard-image-annotation img { display:block; max-width:360px; max-height:360px; }
+        .whiteboard-image-annotation .img-handle { position:absolute; top:6px; right:6px; background:rgba(0,0,0,0.75); color:#fff; width:26px; height:26px; border-radius:50%; display:flex; align-items:center; justify-content:center; font-size:12px; cursor:pointer; border:1px solid rgba(255,255,255,0.2); }
+        #whiteboard-draw-layer, #whiteboard-temp-layer { position:absolute; top:0; left:0; width:4000px; height:4000px; }
+        #whiteboard-draw-layer { z-index:8; pointer-events:none; }
+        #whiteboard-temp-layer { z-index:9; pointer-events:none; }
+        #whiteboard-draw-layer.active, #whiteboard-temp-layer.active { pointer-events:auto !important; }
+        #selection-marquee { position:absolute; border:1.5px dashed #d2a45a; background:rgba(210,164,90,0.12); z-index:100; pointer-events:none; border-radius:4px; box-shadow:0 0 0 1px rgba(210,164,90,0.2); }
+        .tool-submenu { position:absolute; left:70px; top:0; background:rgba(18,18,22,0.98); border:1px solid #282833; border-radius:12px; padding:12px; width:200px; box-shadow:0 12px 32px rgba(0,0,0,0.7); z-index:200; backdrop-filter:blur(12px); }
+        .tool-submenu-title { font-size:10px; font-family:monospace; color:#d2a45a; font-weight:800; text-transform:uppercase; letter-spacing:1px; margin-bottom:8px; display:flex; justify-content:space-between; align-items:center; }
+        .tool-submenu .color-grid { display:grid; grid-template-columns:repeat(4, 1fr); gap:8px; margin-bottom:12px; }
+        .tool-submenu .size-row { display:flex; align-items:center; gap:8px; margin-bottom:8px; }
+        .whiteboard-card.selected-multi { outline:3px solid #d2a45a !important; box-shadow:0 0 20px rgba(210,164,90,0.4) !important; }
+      `;
+      document.head.appendChild(s);
+    }
+
+    // State - ensure exists
+    app.whiteboardDrawStrokes = dbGet('whiteboard_draw_strokes_v1', []);
+    app.whiteboardTextAnnotations = dbGet('whiteboard_text_annotations_v1', []);
+    app.whiteboardImageAnnotations = dbGet('whiteboard_image_annotations_v1', []);
+    app.currentBrushColor = dbGet('whiteboard_brush_color', '#d2a45a');
+    app.currentBrushSize = dbGet('whiteboard_brush_size', 4);
+    app.currentTextColor = dbGet('whiteboard_text_color', '#f2c94c');
+    app.currentTextSize = dbGet('whiteboard_text_size', 15);
+    app.currentChalkboardTool = app.currentChalkboardTool || 'select';
+    app.selectedCardIds = app.selectedCardIds || []; // multi-select
+    app.isDrawing = false;
+    app.currentStroke = null;
+    app.currentShapeStart = null;
+    app.selectionStart = null;
+
+    const grid = document.getElementById('storyboard-grid');
+    if(!grid) return;
+
+    function ensureCanvases(){
+      let draw = document.getElementById('whiteboard-draw-layer');
+      if(!draw){
+        draw = document.createElement('canvas');
+        draw.id='whiteboard-draw-layer';
+        draw.width=4000; draw.height=4000;
+        grid.appendChild(draw);
+      }
+      let temp = document.getElementById('whiteboard-temp-layer');
+      if(!temp){
+        temp = document.createElement('canvas');
+        temp.id='whiteboard-temp-layer';
+        temp.width=4000; temp.height=4000;
+        grid.appendChild(temp);
+      }
+      return {draw, temp};
+    }
+    let {draw: drawCanvas, temp: tempCanvas} = ensureCanvases();
+    let drawCtx = drawCanvas.getContext('2d');
+    let tempCtx = tempCanvas.getContext('2d');
+
+    // Correct world pos with grid offset -1500
+    function getWorldPos(clientX, clientY){
+      const vp = document.getElementById('storyboard-viewport');
+      if(!vp) return {x:0,y:0};
+      const vpRect = vp.getBoundingClientRect();
+      const panX = app.whiteboardPanX||0, panY=app.whiteboardPanY||0, zoom=app.whiteboardZoom||1;
+      const gridOffsetX = -1500, gridOffsetY = -1500; // CSS top/left of grid
+      const x = (clientX - vpRect.left - gridOffsetX - panX)/zoom;
+      const y = (clientY - vpRect.top - gridOffsetY - panY)/zoom;
+      return {x, y};
+    }
+
+    // Rendering
+    app.renderWhiteboardDrawings = function(){
+      const canvas = document.getElementById('whiteboard-draw-layer');
+      if(!canvas) return;
+      const ctx = canvas.getContext('2d');
+      ctx.clearRect(0,0,4000,4000);
+      this.whiteboardDrawStrokes.forEach(stroke=>{
+        if(!stroke.points || stroke.points.length===0) return;
+        ctx.beginPath();
+        ctx.strokeStyle = stroke.color || '#d2a45a';
+        ctx.lineWidth = stroke.size || 4;
+        ctx.lineCap='round'; ctx.lineJoin='round';
+        ctx.globalCompositeOperation='source-over';
+        if(stroke.tool==='pencil'){
+          if(stroke.points.length<2) return;
+          ctx.moveTo(stroke.points[0].x, stroke.points[0].y);
+          for(let i=1;i<stroke.points.length;i++) ctx.lineTo(stroke.points[i].x, stroke.points[i].y);
+        } else if(stroke.tool==='rect'){
+          const p0=stroke.points[0], p1=stroke.points[1];
+          if(!p0||!p1) return;
+          ctx.strokeRect(p0.x, p0.y, p1.x-p0.x, p1.y-p0.y);
+        } else if(stroke.tool==='circle'){
+          const p0=stroke.points[0], p1=stroke.points[1];
+          if(!p0||!p1) return;
+          const rx=Math.abs(p1.x-p0.x)/2, ry=Math.abs(p1.y-p0.y)/2;
+          const cx=p0.x+(p1.x-p0.x)/2, cy=p0.y+(p1.y-p0.y)/2;
+          ctx.ellipse(cx, cy, rx, ry, 0, 0, Math.PI*2);
+        } else if(stroke.tool==='line' || stroke.tool==='arrow'){
+          const p0=stroke.points[0], p1=stroke.points[1];
+          if(!p0||!p1) return;
+          ctx.moveTo(p0.x, p0.y);
+          ctx.lineTo(p1.x, p1.y);
+          if(stroke.tool==='arrow'){
+            const ang=Math.atan2(p1.y-p0.y, p1.x-p0.x);
+            const h=14;
+            ctx.moveTo(p1.x, p1.y);
+            ctx.lineTo(p1.x - h*Math.cos(ang-Math.PI/6), p1.y - h*Math.sin(ang-Math.PI/6));
+            ctx.moveTo(p1.x, p1.y);
+            ctx.lineTo(p1.x - h*Math.cos(ang+Math.PI/6), p1.y - h*Math.sin(ang+Math.PI/6));
+          }
+        }
+        ctx.stroke();
+      });
+    };
+
+    app.renderWhiteboardTextAnnotations = function(){
+      const g=document.getElementById('storyboard-grid');
+      if(!g) return;
+      g.querySelectorAll('.whiteboard-text-annotation').forEach(el=>el.remove());
+      this.whiteboardTextAnnotations.forEach(ann=>{
+        const div=document.createElement('div');
+        div.className='whiteboard-text-annotation';
+        div.id=ann.id;
+        div.style.left=ann.x+'px';
+        div.style.top=ann.y+'px';
+        div.style.color=ann.color||'#f2c94c';
+        div.style.fontSize=(ann.fontSize||15)+'px';
+        div.style.borderColor=(ann.color||'#f2c94c')+'66';
+        div.style.background=`${ann.color||'#f2c94c'}1A`;
+        div.textContent=ann.text;
+        div.contentEditable=true;
+        div.addEventListener('blur', ()=>{
+          const t=app.whiteboardTextAnnotations.find(a=>a.id===ann.id);
+          if(t){ t.text=div.textContent; dbSet('whiteboard_text_annotations_v1', app.whiteboardTextAnnotations); }
+        });
+        div.addEventListener('mousedown', (e)=>{
+          if(app.currentChalkboardTool!=='select') return;
+          e.stopPropagation();
+          const sx=e.clientX, sy=e.clientY, ox=ann.x, oy=ann.y;
+          const mv=(me)=>{
+            ann.x=ox+(me.clientX-sx)/(app.whiteboardZoom||1);
+            ann.y=oy+(me.clientY-sy)/(app.whiteboardZoom||1);
+            div.style.left=ann.x+'px'; div.style.top=ann.y+'px';
+          };
+          const up=()=>{
+            dbSet('whiteboard_text_annotations_v1', app.whiteboardTextAnnotations);
+            document.removeEventListener('mousemove', mv);
+            document.removeEventListener('mouseup', up);
+          };
+          document.addEventListener('mousemove', mv);
+          document.addEventListener('mouseup', up);
+        });
+        div.addEventListener('contextmenu', (e)=>{
+          e.preventDefault();
+          if(confirm('Supprimer ce texte ?')){
+            app.whiteboardTextAnnotations=app.whiteboardTextAnnotations.filter(a=>a.id!==ann.id);
+            dbSet('whiteboard_text_annotations_v1', app.whiteboardTextAnnotations);
+            div.remove();
+          }
+        });
+        // Selection visual for multi-select
+        if((app.selectedCardIds||[]).includes(ann.id) || app.selectedCardId===ann.id){
+          div.classList.add('selected');
+          div.style.outline='3px solid #d2a45a';
+        }
+        g.appendChild(div);
+      });
+    };
+
+    app.renderWhiteboardImageAnnotations = function(){
+      const g=document.getElementById('storyboard-grid');
+      if(!g) return;
+      g.querySelectorAll('.whiteboard-image-annotation').forEach(el=>el.remove());
+      this.whiteboardImageAnnotations.forEach(ann=>{
+        const wrap=document.createElement('div');
+        wrap.className='whiteboard-image-annotation';
+        wrap.id=ann.id;
+        wrap.style.left=ann.x+'px'; wrap.style.top=ann.y+'px'; wrap.style.width=(ann.w||260)+'px';
+        wrap.innerHTML=`<img src="${ann.src}"><div class="img-handle" title="Supprimer">✕</div>`;
+        wrap.addEventListener('mousedown', (e)=>{
+          if(e.target.closest('.img-handle')) return;
+          if(app.currentChalkboardTool!=='select') return;
+          e.stopPropagation();
+          const sx=e.clientX, sy=e.clientY, ox=ann.x, oy=ann.y;
+          const mv=(me)=>{
+            ann.x=ox+(me.clientX-sx)/(app.whiteboardZoom||1);
+            ann.y=oy+(me.clientY-sy)/(app.whiteboardZoom||1);
+            wrap.style.left=ann.x+'px'; wrap.style.top=ann.y+'px';
+          };
+          const up=()=>{
+            dbSet('whiteboard_image_annotations_v1', app.whiteboardImageAnnotations);
+            document.removeEventListener('mousemove', mv);
+            document.removeEventListener('mouseup', up);
+          };
+          document.addEventListener('mousemove', mv);
+          document.addEventListener('mouseup', up);
+        });
+        wrap.querySelector('.img-handle').addEventListener('click', (e)=>{
+          e.stopPropagation();
+          if(confirm('Supprimer cette image ?')){
+            app.whiteboardImageAnnotations=app.whiteboardImageAnnotations.filter(a=>a.id!==ann.id);
+            dbSet('whiteboard_image_annotations_v1', app.whiteboardImageAnnotations);
+            wrap.remove();
+          }
+        });
+        if((app.selectedCardIds||[]).includes(ann.id)) wrap.style.outline='3px solid #d2a45a';
+        g.appendChild(wrap);
+      });
+    };
+
+    // Toolbar with submenus
+    function buildToolbar(){
+      const toolbar=document.querySelector('.whiteboard-floating-toolbar');
+      if(!toolbar) return;
+      const colors=['#d2a45a','#6398f7','#49c490','#f2c94c','#eb5757','#ffffff','#000000'];
+      const textColors=['#f2c94c','#ffffff','#d2a45a','#49c490','#6398f7','#eb5757','#000000'];
+      const textSizes=[12,14,16,18,20,24,28,32];
+
+      toolbar.innerHTML=`
+        <button class="toolbar-btn active" id="tool-select" data-tool="select" title="Sélection (V) - Drag pour sélectionner zone"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="3 3 10.07 19.97 12.58 12.58 19.97 10.07 3 3"></polygon><line x1="13" y1="13" x2="19" y2="19"></line></svg><span class="tooltip-right">Sélection (V) - Glisser pour zone</span></button>
+        <button class="toolbar-btn" id="tool-pan" data-tool="pan" title="Main (H)"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 11V6a2 2 0 0 0-2-2v0a2 2 0 0 0-2 2v5"></path><path d="M14 10V4a2 2 0 0 0-2-2v0a2 2 0 0 0-2 2v6"></path><path d="M10 10.5V6a2 2 0 0 0-2-2v0a2 2 0 0 0-2 2v4.5"></path><path d="M6 10V8a2 2 0 0 0-2-2v0a2 2 0 0 0-2 2v5c0 5.5 4.5 10 10 10s10-4.5 10-10V11a2 2 0 0 0-2-2v0a2 2 0 0 0-2 2"></path></svg><span class="tooltip-right">Main (H) Déplacer tableau</span></button>
+        <div class="toolbar-separator"></div>
+
+        <div style="position:relative;">
+          <button class="toolbar-btn" id="tool-text" data-tool="text" title="Texte (T)"><span style="font-weight:900; font-size:16px;">T</span><span class="tooltip-right">Texte (T) + sous-menu</span></button>
+          <div class="tool-submenu" id="submenu-text" style="display:none;">
+            <div class="tool-submenu-title"><span>Texte</span><span style="cursor:pointer;" onclick="document.getElementById('submenu-text').style.display='none'">✕</span></div>
+            <div style="font-size:9px; color:#9aa0a6; font-family:monospace; margin-bottom:6px;">Couleur texte</div>
+            <div class="color-grid" id="text-color-grid">${textColors.map(c=>`<div class="toolbar-color-dot ${c===app.currentTextColor?'active':''}" data-color="${c}" style="background:${c}; width:20px; height:20px;" onclick="app.setTextColor('${c}')" title="${c}"></div>`).join('')}</div>
+            <div style="font-size:9px; color:#9aa0a6; font-family:monospace; margin:8px 0 4px;">Taille</div>
+            <div style="display:flex; flex-wrap:wrap; gap:4px; margin-bottom:8px;">
+              ${textSizes.map(s=>`<button class="btn-action" style="font-size:${Math.min(s,14)}px; padding:2px 6px; ${s===app.currentTextSize?'background:#d2a45a; color:#000; border-color:#d2a45a;':''}" onclick="app.setTextSize(${s})">${s}px</button>`).join('')}
+            </div>
+            <input type="range" min="10" max="48" value="${app.currentTextSize}" style="width:100%; accent-color:#d2a45a;" oninput="app.setTextSize(this.value)">
+            <div style="font-size:9px; color:#9aa0a6; font-family:monospace; margin-top:8px;">Conseil: clique sur tableau pour placer texte</div>
+          </div>
+        </div>
+
+        <button class="toolbar-btn" id="tool-pencil" data-tool="pencil" title="Crayon (P)"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 3a2.85 2.85 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z"></path></svg><span class="tooltip-right">Crayon (P)</span></button>
+        <button class="toolbar-btn" id="tool-eraser" data-tool="eraser" title="Gomme (E)"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 20H7L3 16C2 15 2 13 3 12L13 2L22 11L20 20Z"></path><path d="M17 17L7 7"></path></svg><span class="tooltip-right">Gomme (E)</span></button>
+        <div class="toolbar-separator"></div>
+        <button class="toolbar-btn" id="tool-rect" data-tool="rect" title="Rectangle (R)"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2"></rect></svg><span class="tooltip-right">Rectangle (R)</span></button>
+        <button class="toolbar-btn" id="tool-circle" data-tool="circle" title="Cercle (C)"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"></circle></svg><span class="tooltip-right">Cercle (C)</span></button>
+        <button class="toolbar-btn" id="tool-arrow" data-tool="arrow" title="Flèche (A)"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="5" y1="12" x2="19" y2="12"></line><polyline points="12 5 19 12 12 19"></polyline></svg><span class="tooltip-right">Flèche (A)</span></button>
+        <button class="toolbar-btn" id="tool-line" data-tool="line" title="Ligne (L)"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="4" y1="20" x2="20" y2="4"></line></svg><span class="tooltip-right">Ligne (L)</span></button>
+        <div class="toolbar-separator"></div>
+        <button class="toolbar-btn" onclick="app.addStoryboardCard('note')" title="Post-it (N)">📝<span class="tooltip-right">Post-it (N)</span></button>
+        <button class="toolbar-btn" id="tool-image" onclick="document.getElementById('whiteboard-image-input')?.click()" title="Image (I)">🖼️<span class="tooltip-right">Image (I)</span></button>
+        <button class="toolbar-btn" onclick="app.addStoryboardCard('square')" title="Cadre">🔲<span class="tooltip-right">Cadre</span></button>
+        <div class="toolbar-separator"></div>
+        <div style="display:flex; flex-direction:column; gap:6px; align-items:center; padding:4px 0;">
+          <div style="font-size:8px; font-family:monospace; color:#9aa0a6; font-weight:700;">COULEUR</div>
+          <div id="toolbar-colors" style="display:flex; flex-direction:column; gap:5px; align-items:center;">
+            ${colors.map(c=>`<div class="toolbar-color-dot ${c===app.currentBrushColor?'active':''}" data-color="${c}" style="background:${c};" onclick="app.setBrushColor('${c}')"></div>`).join('')}
+          </div>
+          <input type="color" id="custom-color-picker" value="${app.currentBrushColor}" style="width:30px; height:20px; border:none; border-radius:5px; cursor:pointer; background:transparent; margin-top:4px;" oninput="app.setBrushColor(this.value)">
+        </div>
+        <div class="toolbar-separator"></div>
+        <div style="display:flex; flex-direction:column; gap:4px; align-items:center;">
+          <div style="font-size:8px; font-family:monospace; color:#9aa0a6; font-weight:700;">TAILLE</div>
+          <input type="range" id="brush-size" min="1" max="28" value="${app.currentBrushSize}" style="width:40px; accent-color:#d2a45a; cursor:pointer;" oninput="app.setBrushSize(this.value)">
+          <span id="brush-size-label" style="font-size:10px; color:#d2a45a; font-family:monospace; font-weight:700;">${app.currentBrushSize}px</span>
+        </div>
+        <div class="toolbar-separator"></div>
+        <button class="toolbar-btn" onclick="app.clearWhiteboardDrawings()" title="Effacer dessins" style="color:#ff453a;">🗑️<span class="tooltip-right">Effacer dessins seulement</span></button>
+      `;
+
+      // File input
+      if(!document.getElementById('whiteboard-image-input')){
+        const inp=document.createElement('input');
+        inp.type='file'; inp.accept='image/*'; inp.id='whiteboard-image-input'; inp.style.display='none';
+        inp.addEventListener('change', (e)=>{
+          if(e.target.files && e.target.files[0]){
+            const file=e.target.files[0];
+            const reader=new FileReader();
+            reader.onload=(ev)=>{
+              const src=ev.target.result;
+              const vp=document.getElementById('storyboard-viewport');
+              let x=500, y=400;
+              if(vp){
+                const panX=app.whiteboardPanX||0, panY=app.whiteboardPanY||0, zoom=app.whiteboardZoom||1;
+                const vpRect=vp.getBoundingClientRect();
+                x = (vpRect.width/2 - panX +1500)/zoom;
+                y = (vpRect.height/2 - panY +1500)/zoom;
+              }
+              const ann={id:'wimg_'+Date.now(), x, y, src, w:280, h:200};
+              app.whiteboardImageAnnotations.push(ann);
+              dbSet('whiteboard_image_annotations_v1', app.whiteboardImageAnnotations);
+              app.renderWhiteboardImageAnnotations();
+            };
+            reader.readAsDataURL(file);
+          }
+          e.target.value='';
+        });
+        document.body.appendChild(inp);
+      }
+
+      // Text submenu toggle
+      const textBtn=document.getElementById('tool-text');
+      const submenu=document.getElementById('submenu-text');
+      if(textBtn && submenu){
+        textBtn.addEventListener('click', (e)=>{
+          // After setting tool, show submenu
+          setTimeout(()=>{
+            if(app.currentChalkboardTool==='text'){
+              submenu.style.display = submenu.style.display==='none' ? 'block' : 'none';
+            } else {
+              submenu.style.display='none';
+            }
+          }, 50);
+        });
+        // Hide when clicking elsewhere
+        document.addEventListener('click', (ev)=>{
+          if(!textBtn.contains(ev.target) && !submenu.contains(ev.target)){
+            submenu.style.display='none';
+          }
+        });
+      }
+    }
+
+    // Tool switching
+    app.setChalkboardTool = function(tool){
+      this.currentChalkboardTool = tool;
+      document.querySelectorAll('.whiteboard-floating-toolbar .toolbar-btn').forEach(b=>b.classList.remove('active'));
+      const btn=document.getElementById(`tool-${tool}`);
+      if(btn) btn.classList.add('active');
+
+      const vp=document.getElementById('storyboard-viewport');
+      const drawLayer=document.getElementById('whiteboard-draw-layer');
+      const tempLayer=document.getElementById('whiteboard-temp-layer');
+      if(vp){
+        if(tool==='pan') vp.style.cursor='grab';
+        else if(['pencil','rect','circle','arrow','line'].includes(tool)) vp.style.cursor='crosshair';
+        else if(tool==='text') vp.style.cursor='text';
+        else if(tool==='eraser') vp.style.cursor='cell';
+        else vp.style.cursor='default';
+      }
+      if(drawLayer){
+        if(['pencil','eraser','rect','circle','arrow','line','text'].includes(tool)){
+          drawLayer.classList.add('active');
+          drawLayer.style.pointerEvents='auto';
+        } else {
+          drawLayer.classList.remove('active');
+          drawLayer.style.pointerEvents='none';
+        }
+      }
+      if(tempLayer){
+        if(['rect','circle','arrow','line','pencil'].includes(tool)){
+          tempLayer.classList.add('active');
+          tempLayer.style.pointerEvents='auto';
+        } else {
+          tempLayer.classList.remove('active');
+          tempLayer.style.pointerEvents='none';
+        }
+      }
+      // Show/hide text submenu
+      const submenu=document.getElementById('submenu-text');
+      if(submenu){
+        submenu.style.display = tool==='text' ? 'block' : 'none';
+      }
+      this.logTerminal && this.logTerminal(`[TOOL] ${tool.toUpperCase()} - ${tool==='select'?'Glisser pour zone de sélection': tool==='text'?'Clique pour écrire + sous-menu couleurs/tailles':''}`);
+    };
+
+    app.setBrushColor = function(color){
+      this.currentBrushColor=color;
+      dbSet('whiteboard_brush_color', color);
+      document.querySelectorAll('#toolbar-colors .toolbar-color-dot').forEach(d=>{ d.classList.toggle('active', d.dataset.color===color); });
+      const picker=document.getElementById('custom-color-picker');
+      if(picker) picker.value=color;
+    };
+    app.setTextColor = function(color){
+      this.currentTextColor=color;
+      dbSet('whiteboard_text_color', color);
+      document.querySelectorAll('#text-color-grid .toolbar-color-dot').forEach(d=>{ d.classList.toggle('active', d.dataset.color===color); });
+      // Also set brush color to same for visual coherence
+      this.currentBrushColor=color;
+      dbSet('whiteboard_brush_color', color);
+    };
+    app.setBrushSize = function(size){
+      this.currentBrushSize=parseInt(size);
+      dbSet('whiteboard_brush_size', this.currentBrushSize);
+      const label=document.getElementById('brush-size-label');
+      if(label) label.textContent=size+'px';
+    };
+    app.setTextSize = function(size){
+      this.currentTextSize=parseInt(size);
+      dbSet('whiteboard_text_size', this.currentTextSize);
+      // Update submenu buttons active state
+      document.querySelectorAll('#submenu-text button').forEach(btn=>{
+        if(btn.textContent.includes(size+'px')){
+          btn.style.background='#d2a45a'; btn.style.color='#000'; btn.style.borderColor='#d2a45a';
+        } else if(btn.textContent.includes('px')){
+          btn.style.background=''; btn.style.color=''; btn.style.borderColor='';
+        }
+      });
+    };
+    app.clearWhiteboardDrawings = function(){
+      if(!confirm('Effacer TOUS les traits, textes et images dessinés ? (Cards conservées)')) return;
+      this.whiteboardDrawStrokes=[];
+      this.whiteboardTextAnnotations=[];
+      this.whiteboardImageAnnotations=[];
+      dbSet('whiteboard_draw_strokes_v1', []);
+      dbSet('whiteboard_text_annotations_v1', []);
+      dbSet('whiteboard_image_annotations_v1', []);
+      this.renderWhiteboardDrawings();
+      this.renderWhiteboardTextAnnotations();
+      this.renderWhiteboardImageAnnotations();
+    };
+
+    // Ensure canvases
+    function ensureCanvases(){
+      const grid=document.getElementById('storyboard-grid');
+      if(!grid) return {};
+      let draw=document.getElementById('whiteboard-draw-layer');
+      if(!draw){
+        draw=document.createElement('canvas');
+        draw.id='whiteboard-draw-layer'; draw.width=4000; draw.height=4000;
+        draw.style.cssText='position:absolute; top:0; left:0; width:4000px; height:4000px; z-index:5; pointer-events:none;';
+        grid.appendChild(draw);
+      }
+      let temp=document.getElementById('whiteboard-temp-layer');
+      if(!temp){
+        temp=document.createElement('canvas');
+        temp.id='whiteboard-temp-layer'; temp.width=4000; temp.height=4000;
+        temp.style.cssText='position:absolute; top:0; left:0; width:4000px; height:4000px; z-index:6; pointer-events:none;';
+        grid.appendChild(temp);
+      }
+      return {draw, temp};
+    }
+
+    // World pos with correct offset
+    function getWorldPos(clientX, clientY){
+      const vp=document.getElementById('storyboard-viewport');
+      const vpRect=vp.getBoundingClientRect();
+      const panX=app.whiteboardPanX||0, panY=app.whiteboardPanY||0, zoom=app.whiteboardZoom||1;
+      const gridOffsetX=-1500, gridOffsetY=-1500;
+      return {
+        x: (clientX - vpRect.left - gridOffsetX - panX)/zoom,
+        y: (clientY - vpRect.top - gridOffsetY - panY)/zoom
+      };
+    }
+
+    // Selection marquee handling
+    let selectionMarquee = null;
+    let selectionStartWorld = null;
+    let isSelecting = false;
+
+    function createMarquee(){
+      if(selectionMarquee) selectionMarquee.remove();
+      selectionMarquee=document.createElement('div');
+      selectionMarquee.id='selection-marquee';
+      document.getElementById('storyboard-grid').appendChild(selectionMarquee);
+      return selectionMarquee;
+    }
+    function updateMarquee(start, current){
+      const marquee = selectionMarquee || createMarquee();
+      const x = Math.min(start.x, current.x);
+      const y = Math.min(start.y, current.y);
+      const w = Math.abs(current.x - start.x);
+      const h = Math.abs(current.y - start.y);
+      marquee.style.left=x+'px';
+      marquee.style.top=y+'px';
+      marquee.style.width=w+'px';
+      marquee.style.height=h+'px';
+      marquee.style.display='block';
+      return {x,y,w,h};
+    }
+    function clearMarquee(){
+      if(selectionMarquee){
+        selectionMarquee.remove();
+        selectionMarquee=null;
+      }
+    }
+    function selectElementsInRect(rect){
+      const {x,y,w,h} = rect;
+      const x2=x+w, y2=y+h;
+      const selectedCards=[];
+      const selectedTexts=[];
+      const selectedImages=[];
+
+      // Cards: check if card rect intersects selection
+      app.storyboardCards.forEach(card=>{
+        const cardX=card.x, cardY=card.y, cardW=290, cardH=230;
+        if(cardX < x2 && cardX+cardW > x && cardY < y2 && cardY+cardH > y){
+          selectedCards.push(card.id);
+        }
+      });
+      // Text annotations
+      app.whiteboardTextAnnotations.forEach(ann=>{
+        if(ann.x >= x && ann.x <= x2 && ann.y >= y && ann.y <= y2){
+          selectedTexts.push(ann.id);
+        }
+      });
+      // Images
+      app.whiteboardImageAnnotations.forEach(ann=>{
+        if(ann.x >= x && ann.x <= x2 && ann.y >= y && ann.y <= y2){
+          selectedImages.push(ann.id);
+        }
+      });
+
+      // Apply selection visuals
+      document.querySelectorAll('.whiteboard-card').forEach(el=>el.classList.remove('selected-multi'));
+      selectedCards.forEach(id=>{
+        const el=document.getElementById(id);
+        if(el) el.classList.add('selected-multi');
+      });
+      document.querySelectorAll('.whiteboard-text-annotation').forEach(el=>{
+        el.style.outline = selectedTexts.includes(el.id) ? '3px solid #d2a45a' : '';
+      });
+      document.querySelectorAll('.whiteboard-image-annotation').forEach(el=>{
+        el.style.outline = selectedImages.includes(el.id) ? '3px solid #d2a45a' : '';
+      });
+
+      app.selectedCardIds = [...selectedCards, ...selectedTexts, ...selectedImages];
+      app.selectedCardId = selectedCards[0] || null;
+      app.renderInspector && app.renderInspector();
+
+      const total = selectedCards.length + selectedTexts.length + selectedImages.length;
+      if(total>0){
+        app.logTerminal && app.logTerminal(`[SELECT] ${total} éléments sélectionnés: ${selectedCards.length} cards, ${selectedTexts.length} textes, ${selectedImages.length} images`);
+      }
+      return total;
+    }
+
+    // Main mouse handler - COMPLETELY REWRITTEN AND FUNCTIONAL
+    app.handleWhiteboardMouseDown = function(e){
+      // Ignore if clicking on cards, controls, toolbar, annotations (unless select tool dragging them handled elsewhere)
+      if(e.target.closest('.whiteboard-card') || e.target.closest('.whiteboard-controls') || e.target.closest('.whiteboard-floating-toolbar') || e.target.closest('.tool-submenu')){
+        // If select tool and clicking card, handle card selection is done by card header mousedown, not here
+        return;
+      }
+      // If clicking on text/image annotation, let their own mousedown handle drag (they stopPropagation in select mode)
+      if(e.target.closest('.whiteboard-text-annotation') || e.target.closest('.whiteboard-image-annotation')){
+        if(app.currentChalkboardTool==='select') return; // let annotation handle
+      }
+
+      const tool = this.currentChalkboardTool || 'select';
+
+      if(tool==='pan'){
+        this.isPanning=true;
+        this.panStartX=e.clientX - this.whiteboardPanX;
+        this.panStartY=e.clientY - this.whiteboardPanY;
+        const vp=document.getElementById('storyboard-viewport');
+        if(vp) vp.style.cursor='grabbing';
+        const mv=(me)=>{
+          if(!this.isPanning) return;
+          this.whiteboardPanX = me.clientX - this.panStartX;
+          this.whiteboardPanY = me.clientY - this.panStartY;
+          this.applyWhiteboardTransform();
+        };
+        const up=()=>{
+          this.isPanning=false;
+          const vp2=document.getElementById('storyboard-viewport');
+          if(vp2) vp2.style.cursor='grab';
+          dbSet('wb_pan_x', this.whiteboardPanX);
+          dbSet('wb_pan_y', this.whiteboardPanY);
+          document.removeEventListener('mousemove', mv);
+          document.removeEventListener('mouseup', up);
+        };
+        document.addEventListener('mousemove', mv);
+        document.addEventListener('mouseup', up);
+        return;
+      }
+
+      if(tool==='select'){
+        // Start marquee selection
+        const startWorld = getWorldPos(e.clientX, e.clientY);
+        selectionStartWorld = startWorld;
+        isSelecting = true;
+        const marquee = createMarquee();
+        marquee.style.left=startWorld.x+'px';
+        marquee.style.top=startWorld.y+'px';
+        marquee.style.width='0px';
+        marquee.style.height='0px';
+        marquee.style.display='block';
+
+        const mv=(me)=>{
+          if(!isSelecting) return;
+          const curWorld = getWorldPos(me.clientX, me.clientY);
+          updateMarquee(selectionStartWorld, curWorld);
+        };
+        const up=(me)=>{
+          if(!isSelecting) return;
+          isSelecting=false;
+          const endWorld = getWorldPos(me.clientX, me.clientY);
+          const rect = {
+            x: Math.min(selectionStartWorld.x, endWorld.x),
+            y: Math.min(selectionStartWorld.y, endWorld.y),
+            w: Math.abs(endWorld.x - selectionStartWorld.x),
+            h: Math.abs(endWorld.y - selectionStartWorld.y)
+          };
+          // If drag was tiny (<5px), treat as click to clear selection
+          if(rect.w<5 && rect.h<5){
+            document.querySelectorAll('.whiteboard-card').forEach(el=>el.classList.remove('selected-multi', 'active'));
+            document.querySelectorAll('.whiteboard-text-annotation').forEach(el=>el.style.outline='');
+            document.querySelectorAll('.whiteboard-image-annotation').forEach(el=>el.style.outline='');
+            app.selectedCardIds=[];
+            app.selectedCardId=null;
+            app.renderInspector && app.renderInspector();
+          } else {
+            selectElementsInRect(rect);
+          }
+          clearMarquee();
+          document.removeEventListener('mousemove', mv);
+          document.removeEventListener('mouseup', up);
+        };
+        document.addEventListener('mousemove', mv);
+        document.addEventListener('mouseup', up);
+        return;
+      }
+
+      if(tool==='text'){
+        const pos=getWorldPos(e.clientX, e.clientY);
+        const id='wtxt_'+Date.now();
+        const ann={id, x:pos.x, y:pos.y, text:'Double-clique pour éditer...', color:app.currentTextColor||'#f2c94c', fontSize:app.currentTextSize||15};
+        this.whiteboardTextAnnotations.push(ann);
+        dbSet('whiteboard_text_annotations_v1', this.whiteboardTextAnnotations);
+        this.renderWhiteboardTextAnnotations();
+        setTimeout(()=>{
+          const el=document.getElementById(id);
+          if(el){
+            el.focus();
+            // Select all text
+            const range=document.createRange();
+            range.selectNodeContents(el);
+            const sel=window.getSelection();
+            sel.removeAllRanges();
+            sel.addRange(range);
+          }
+        }, 80);
+        return;
+      }
+
+      if(tool==='pencil'){
+        const pos=getWorldPos(e.clientX, e.clientY);
+        this.isDrawing=true;
+        this.currentStroke={id:'stroke_'+Date.now(), tool:'pencil', points:[pos], color:app.currentBrushColor||'#d2a45a', size:app.currentBrushSize||4};
+        const temp=document.getElementById('whiteboard-temp-layer');
+        const tCtx=temp?temp.getContext('2d'):null;
+        if(tCtx) tCtx.clearRect(0,0,4000,4000);
+
+        const mv=(me)=>{
+          if(!this.isDrawing) return;
+          const p=getWorldPos(me.clientX, me.clientY);
+          this.currentStroke.points.push(p);
+          if(tCtx){
+            tCtx.clearRect(0,0,4000,4000);
+            tCtx.beginPath();
+            tCtx.strokeStyle=this.currentStroke.color;
+            tCtx.lineWidth=this.currentStroke.size;
+            tCtx.lineCap='round'; tCtx.lineJoin='round';
+            if(this.currentStroke.points.length>1){
+              tCtx.moveTo(this.currentStroke.points[0].x, this.currentStroke.points[0].y);
+              for(let i=1;i<this.currentStroke.points.length;i++) tCtx.lineTo(this.currentStroke.points[i].x, this.currentStroke.points[i].y);
+              tCtx.stroke();
+            }
+          }
+        };
+        const up=()=>{
+          const temp2=document.getElementById('whiteboard-temp-layer');
+          if(temp2) temp2.getContext('2d').clearRect(0,0,4000,4000);
+          if(this.currentStroke && this.currentStroke.points.length>1){
+            this.whiteboardDrawStrokes.push(this.currentStroke);
+            dbSet('whiteboard_draw_strokes_v1', this.whiteboardDrawStrokes);
+            this.renderWhiteboardDrawings();
+          }
+          this.isDrawing=false; this.currentStroke=null;
+          document.removeEventListener('mousemove', mv);
+          document.removeEventListener('mouseup', up);
+        };
+        document.addEventListener('mousemove', mv);
+        document.addEventListener('mouseup', up);
+        return;
+      }
+
+      if(tool==='eraser'){
+        this.isDrawing=true;
+        const mv=(me)=>{
+          const pos=getWorldPos(me.clientX, me.clientY);
+          const radius=24;
+          let changed=false;
+          this.whiteboardDrawStrokes = this.whiteboardDrawStrokes.filter(stroke=>{
+            if(!stroke.points) return true;
+            for(const pt of stroke.points){
+              const dx=pt.x-pos.x, dy=pt.y-pos.y;
+              if(Math.sqrt(dx*dx+dy*dy) < radius){ changed=true; return false; }
+            }
+            return true;
+          });
+          // Also erase text/images near cursor
+          const textBefore=this.whiteboardTextAnnotations.length;
+          this.whiteboardTextAnnotations = this.whiteboardTextAnnotations.filter(ann=>{
+            const dx=ann.x-pos.x, dy=ann.y-pos.y;
+            if(Math.sqrt(dx*dx+dy*dy) < 60){ changed=true; return false; }
+            return true;
+          });
+          if(this.whiteboardTextAnnotations.length!==textBefore) this.renderWhiteboardTextAnnotations();
+
+          const imgBefore=this.whiteboardImageAnnotations.length;
+          this.whiteboardImageAnnotations = this.whiteboardImageAnnotations.filter(ann=>{
+            const dx=ann.x-pos.x, dy=ann.y-pos.y;
+            if(Math.sqrt(dx*dx+dy*dy) < 80){ changed=true; return false; }
+            return true;
+          });
+          if(this.whiteboardImageAnnotations.length!==imgBefore) this.renderWhiteboardImageAnnotations();
+
+          if(changed){
+            dbSet('whiteboard_draw_strokes_v1', this.whiteboardDrawStrokes);
+            dbSet('whiteboard_text_annotations_v1', this.whiteboardTextAnnotations);
+            dbSet('whiteboard_image_annotations_v1', this.whiteboardImageAnnotations);
+            this.renderWhiteboardDrawings();
+          }
+        };
+        const up=()=>{
+          this.isDrawing=false;
+          document.removeEventListener('mousemove', mv);
+          document.removeEventListener('mouseup', up);
+        };
+        document.addEventListener('mousemove', mv);
+        document.addEventListener('mouseup', up);
+        return;
+      }
+
+      if(['rect','circle','line','arrow'].includes(tool)){
+        const start=getWorldPos(e.clientX, e.clientY);
+        const temp=document.getElementById('whiteboard-temp-layer');
+        const tCtx=temp?temp.getContext('2d'):null;
+        if(tCtx){
+          tCtx.clearRect(0,0,4000,4000);
+          tCtx.strokeStyle=this.currentBrushColor||'#d2a45a';
+          tCtx.lineWidth=this.currentBrushSize||4;
+          tCtx.setLineDash([10,6]);
+        }
+        const mv=(me)=>{
+          if(!tCtx) return;
+          const cur=getWorldPos(me.clientX, me.clientY);
+          tCtx.clearRect(0,0,4000,4000);
+          tCtx.beginPath();
+          if(tool==='rect'){
+            tCtx.strokeRect(start.x, start.y, cur.x-start.x, cur.y-start.y);
+          } else if(tool==='circle'){
+            const rx=Math.abs(cur.x-start.x)/2, ry=Math.abs(cur.y-start.y)/2;
+            const cx=start.x+(cur.x-start.x)/2, cy=start.y+(cur.y-start.y)/2;
+            tCtx.ellipse(cx, cy, rx, ry, 0, 0, Math.PI*2);
+          } else if(tool==='line' || tool==='arrow'){
+            tCtx.moveTo(start.x, start.y);
+            tCtx.lineTo(cur.x, cur.y);
+            if(tool==='arrow'){
+              const ang=Math.atan2(cur.y-start.y, cur.x-start.x);
+              const h=16;
+              tCtx.moveTo(cur.x, cur.y);
+              tCtx.lineTo(cur.x - h*Math.cos(ang-Math.PI/6), cur.y - h*Math.sin(ang-Math.PI/6));
+              tCtx.moveTo(cur.x, cur.y);
+              tCtx.lineTo(cur.x - h*Math.cos(ang+Math.PI/6), cur.y - h*Math.sin(ang+Math.PI/6));
+            }
+          }
+          tCtx.stroke();
+        };
+        const up=(me)=>{
+          const end=getWorldPos(me.clientX, me.clientY);
+          if(tCtx) tCtx.clearRect(0,0,4000,4000);
+          const dx=Math.abs(end.x-start.x), dy=Math.abs(end.y-start.y);
+          if(dx>10 || dy>10){
+            this.whiteboardDrawStrokes.push({id:'stroke_'+Date.now(), tool, points:[start, end], color:this.currentBrushColor||'#d2a45a', size:this.currentBrushSize||4});
+            dbSet('whiteboard_draw_strokes_v1', this.whiteboardDrawStrokes);
+            this.renderWhiteboardDrawings();
+          }
+          document.removeEventListener('mousemove', mv);
+          document.removeEventListener('mouseup', up);
+        };
+        document.addEventListener('mousemove', mv);
+        document.addEventListener('mouseup', up);
+        return;
+      }
+    };
+
+    // Keyboard shortcuts
+    document.addEventListener('keydown', (e)=>{
+      if(e.target.matches && e.target.matches('input, textarea, [contenteditable=true]')) return;
+      const k=e.key.toLowerCase();
+      if(k==='v') app.setChalkboardTool('select');
+      else if(k==='h') app.setChalkboardTool('pan');
+      else if(k==='t') app.setChalkboardTool('text');
+      else if(k==='p') app.setChalkboardTool('pencil');
+      else if(k==='e') app.setChalkboardTool('eraser');
+      else if(k==='r') app.setChalkboardTool('rect');
+      else if(k==='c' && !e.ctrlKey) app.setChalkboardTool('circle');
+      else if(k==='a' && !e.shiftKey) app.setChalkboardTool('arrow');
+      else if(k==='l') app.setChalkboardTool('line');
+      else if(k==='i') document.getElementById('whiteboard-image-input')?.click();
+      else if(k==='n') app.addStoryboardCard('note');
+      else if((k==='delete' || k==='backspace') && app.selectedCardIds && app.selectedCardIds.length>0){
+        if(confirm(`Supprimer ${app.selectedCardIds.length} éléments sélectionnés ?`)){
+          // Delete selected cards, texts, images
+          const cardIds = app.selectedCardIds.filter(id=>app.storyboardCards.some(c=>c.id===id));
+          const textIds = app.selectedCardIds.filter(id=>app.whiteboardTextAnnotations.some(t=>t.id===id));
+          const imgIds = app.selectedCardIds.filter(id=>app.whiteboardImageAnnotations.some(i=>i.id===id));
+          if(cardIds.length>0){
+            app.storyboardCards = app.storyboardCards.filter(c=>!cardIds.includes(c.id));
+            dbSet('storyboard_cards_v1', app.storyboardCards);
+            app.renderStoryboardCards();
+          }
+          if(textIds.length>0){
+            app.whiteboardTextAnnotations = app.whiteboardTextAnnotations.filter(t=>!textIds.includes(t.id));
+            dbSet('whiteboard_text_annotations_v1', app.whiteboardTextAnnotations);
+            app.renderWhiteboardTextAnnotations();
+          }
+          if(imgIds.length>0){
+            app.whiteboardImageAnnotations = app.whiteboardImageAnnotations.filter(i=>!imgIds.includes(i.id));
+            dbSet('whiteboard_image_annotations_v1', app.whiteboardImageAnnotations);
+            app.renderWhiteboardImageAnnotations();
+          }
+          // Also remove strokes that are within deleted area? For simplicity, clear all if many selected
+          app.selectedCardIds=[];
+          app.selectedCardId=null;
+          app.renderInspector && app.renderInspector();
+        }
+      }
+    });
+
+    // Init
+    setTimeout(()=>{
+      ensureCanvases();
+      app.renderWhiteboardDrawings();
+      app.renderWhiteboardTextAnnotations();
+      app.renderWhiteboardImageAnnotations();
+      // Rebuild toolbar
+      const toolbar=document.querySelector('.whiteboard-floating-toolbar');
+      if(toolbar){
+        const colors=['#d2a45a','#6398f7','#49c490','#f2c94c','#eb5757','#ffffff','#000000'];
+        const textColors=['#f2c94c','#ffffff','#d2a45a','#49c490','#6398f7','#eb5757','#000000'];
+        const textSizes=[12,14,16,18,20,24,28,32];
+        toolbar.innerHTML=`
+          <button class="toolbar-btn active" id="tool-select" data-tool="select" title="Sélection (V) - Drag zone"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="3 3 10.07 19.97 12.58 12.58 19.97 10.07 3 3"></polygon><line x1="13" y1="13" x2="19" y2="19"></line></svg><span class="tooltip-right">Sélection (V) - Glisser pour zone visuelle</span></button>
+          <button class="toolbar-btn" id="tool-pan" data-tool="pan" title="Main (H)"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 11V6a2 2 0 0 0-2-2v0a2 2 0 0 0-2 2v5"></path><path d="M14 10V4a2 2 0 0 0-2-2v0a2 2 0 0 0-2 2v6"></path><path d="M10 10.5V6a2 2 0 0 0-2-2v0a2 2 0 0 0-2 2v4.5"></path><path d="M6 10V8a2 2 0 0 0-2-2v0a2 2 0 0 0-2 2v5c0 5.5 4.5 10 10 10s10-4.5 10-10V11a2 2 0 0 0-2-2v0a2 2 0 0 0-2 2"></path></svg><span class="tooltip-right">Main (H)</span></button>
+          <div class="toolbar-separator"></div>
+          <div style="position:relative;">
+            <button class="toolbar-btn" id="tool-text" data-tool="text" title="Texte (T)"><span style="font-weight:900; font-size:16px;">T</span><span class="tooltip-right">Texte (T) + sous-menu couleur/taille</span></button>
+            <div class="tool-submenu" id="submenu-text" style="display:none;">
+              <div class="tool-submenu-title"><span>Texte</span><span style="cursor:pointer;" onclick="document.getElementById('submenu-text').style.display='none'">✕</span></div>
+              <div style="font-size:9px; color:#9aa0a6; font-family:monospace; margin-bottom:6px;">Couleur</div>
+              <div class="color-grid">${textColors.map(c=>`<div class="toolbar-color-dot ${c===app.currentTextColor?'active':''}" style="background:${c}; width:20px; height:20px;" onclick="app.setTextColor('${c}')"></div>`).join('')}</div>
+              <div style="font-size:9px; color:#9aa0a6; font-family:monospace; margin:8px 0 4px;">Taille</div>
+              <div style="display:flex; flex-wrap:wrap; gap:4px; margin-bottom:8px;">${textSizes.map(s=>`<button class="btn-action" style="font-size:${Math.min(s,14)}px; padding:2px 6px; ${s===app.currentTextSize?'background:#d2a45a; color:#000;':''}" onclick="app.setTextSize(${s})">${s}px</button>`).join('')}</div>
+              <input type="range" min="10" max="48" value="${app.currentTextSize}" style="width:100%; accent-color:#d2a45a;" oninput="app.setTextSize(this.value)">
+            </div>
+          </div>
+          <button class="toolbar-btn" id="tool-pencil" data-tool="pencil" title="Crayon (P)"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 3a2.85 2.85 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z"></path></svg><span class="tooltip-right">Crayon (P) - Dessine sur tableau infini</span></button>
+          <button class="toolbar-btn" id="tool-eraser" data-tool="eraser" title="Gomme (E)"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 20H7L3 16C2 15 2 13 3 12L13 2L22 11L20 20Z"></path><path d="M17 17L7 7"></path></svg><span class="tooltip-right">Gomme (E) - Efface traits/textes/images</span></button>
+          <div class="toolbar-separator"></div>
+          <button class="toolbar-btn" id="tool-rect" data-tool="rect" title="Rectangle (R)"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2"></rect></svg><span class="tooltip-right">Rectangle (R)</span></button>
+          <button class="toolbar-btn" id="tool-circle" data-tool="circle" title="Cercle (C)"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"></circle></svg><span class="tooltip-right">Cercle (C)</span></button>
+          <button class="toolbar-btn" id="tool-arrow" data-tool="arrow" title="Flèche (A)"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="5" y1="12" x2="19" y2="12"></line><polyline points="12 5 19 12 12 19"></polyline></svg><span class="tooltip-right">Flèche (A)</span></button>
+          <button class="toolbar-btn" id="tool-line" data-tool="line" title="Ligne (L)"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="4" y1="20" x2="20" y2="4"></line></svg><span class="tooltip-right">Ligne (L)</span></button>
+          <div class="toolbar-separator"></div>
+          <button class="toolbar-btn" onclick="app.addStoryboardCard('note')" title="Post-it (N)">📝<span class="tooltip-right">Post-it (N)</span></button>
+          <button class="toolbar-btn" onclick="document.getElementById('whiteboard-image-input')?.click()" title="Image (I)">🖼️<span class="tooltip-right">Image (I)</span></button>
+          <button class="toolbar-btn" onclick="app.addStoryboardCard('square')" title="Cadre">🔲<span class="tooltip-right">Cadre</span></button>
+          <div class="toolbar-separator"></div>
+          <div style="display:flex; flex-direction:column; gap:6px; align-items:center; padding:4px 0;">
+            <div style="font-size:8px; font-family:monospace; color:#9aa0a6; font-weight:700;">COULEUR</div>
+            <div style="display:flex; flex-direction:column; gap:5px; align-items:center;">${colors.map(c=>`<div class="toolbar-color-dot ${c===app.currentBrushColor?'active':''}" data-color="${c}" style="background:${c};" onclick="app.setBrushColor('${c}')"></div>`).join('')}</div>
+            <input type="color" value="${app.currentBrushColor}" style="width:30px; height:20px; border:none; border-radius:5px; cursor:pointer; background:transparent; margin-top:4px;" oninput="app.setBrushColor(this.value)">
+          </div>
+          <div class="toolbar-separator"></div>
+          <div style="display:flex; flex-direction:column; gap:4px; align-items:center;">
+            <div style="font-size:8px; font-family:monospace; color:#9aa0a6; font-weight:700;">TAILLE</div>
+            <input type="range" min="1" max="28" value="${app.currentBrushSize}" style="width:40px; accent-color:#d2a45a; cursor:pointer;" oninput="app.setBrushSize(this.value)">
+            <span style="font-size:10px; color:#d2a45a; font-family:monospace; font-weight:700;">${app.currentBrushSize}px</span>
+          </div>
+          <div class="toolbar-separator"></div>
+          <button class="toolbar-btn" onclick="app.clearWhiteboardDrawings()" title="Effacer" style="color:#ff453a;">🗑️<span class="tooltip-right">Effacer dessins</span></button>
+        `;
+
+        // File input
+        if(!document.getElementById('whiteboard-image-input')){
+          const inp=document.createElement('input');
+          inp.type='file'; inp.accept='image/*'; inp.id='whiteboard-image-input'; inp.style.display='none';
+          inp.addEventListener('change', (e)=>{
+            if(e.target.files && e.target.files[0]){
+              const file=e.target.files[0];
+              const reader=new FileReader();
+              reader.onload=(ev)=>{
+                const src=ev.target.result;
+                const vp=document.getElementById('storyboard-viewport');
+                let x=500, y=400;
+                if(vp){
+                  const panX=app.whiteboardPanX||0, panY=app.whiteboardPanY||0, zoom=app.whiteboardZoom||1;
+                  const vpRect=vp.getBoundingClientRect();
+                  x = (vpRect.width/2 - panX +1500)/zoom;
+                  y = (vpRect.height/2 - panY +1500)/zoom;
+                }
+                const ann={id:'wimg_'+Date.now(), x, y, src, w:280, h:200};
+                app.whiteboardImageAnnotations.push(ann);
+                dbSet('whiteboard_image_annotations_v1', app.whiteboardImageAnnotations);
+                app.renderWhiteboardImageAnnotations();
+              };
+              reader.readAsDataURL(file);
+            }
+            e.target.value='';
+          });
+          document.body.appendChild(inp);
+        }
+
+        // Submenu logic for text
+        const textBtn=document.getElementById('tool-text');
+        const submenu=document.getElementById('submenu-text');
+        if(textBtn && submenu){
+          textBtn.addEventListener('click', ()=>{
+            setTimeout(()=>{
+              if(app.currentChalkboardTool==='text'){
+                submenu.style.display = submenu.style.display==='none' || !submenu.style.display ? 'block' : 'none';
+              }
+            }, 80);
+          });
+        }
+      }
+
+      app.setChalkboardTool(app.currentChalkboardTool||'select');
+      console.log('[V8] Full functional toolbar ready with marquee select, text submenu, infinite drawing ✅');
+      app.logTerminal && app.logTerminal('[V8] Barre d\'outils fonctionnelle: Select (zone visuelle), Pan, Texte (couleur/taille via sous-menu), Crayon, Gomme, Formes, Post-it, Image - tout écrit sur tableau infini');
+    }, 900);
+  });
+})();
+
+  </script>
+
+  <!-- V6 DB INTEGRITY -->
+  <script>
+/** V6 - DB Integrity & Persistence Fix
+ * - Vérifie que tous les éléments sont déclarés en DB
+ * - Migre les anciennes clés sans préfixe vers préfixées
+ * - Sauvegarde immédiate de tout
+ * - UI de diagnostic DB
+ */
+(() => {
+  const PREFIX = 'blacklaw_cinematic_';
+  const ALL_DB_KEYS = [
+    // Core app
+    'preferred_ai',
+    'key_openai','key_gemini','key_anthropic','key_fal','key_mistral','key_kie','key_openrouter','key_n8n',
+    'model_openai','model_mistral','model_kie','model_openrouter','model_pollinations_image','model_pollinations_chat',
+    'storyboard_cards_v1','storyboard_connections_v1','google_flow_shots_v1',
+    'deployed_agents_v1','custom_skills_v1','n8n_webhooks_v1','plugins_v1','projects_v1','vod_library_v1','vod_main_view',
+    'wb_pan_x','wb_pan_y','wb_zoom','current_storyboard_view',
+    // Badge system V2
+    'badge_registry_v2','generations_hub_v2',
+    'copilot_last_provider_chat','copilot_last_provider_image','copilot_last_provider_video',
+    'model_openai_chat','model_openai_image','model_openai_video',
+    'model_anthropic_chat',
+    'model_gemini_chat','model_gemini_image','model_gemini_video',
+    'model_mistral_chat',
+    'model_fal_image','model_fal_video',
+    'model_pollinations_chat','model_pollinations_image',
+    'model_kie_video',
+    'model_openrouter_chat',
+    // Whiteboard drawing (V5)
+    'whiteboard_draw_strokes_v1','whiteboard_text_annotations_v1','whiteboard_image_annotations_v1',
+    'whiteboard_brush_color','whiteboard_brush_size',
+    // Copilot console
+    'copilot_model','copilot_provider'
+  ];
+
+  const dbGetRaw = (k) => {
+    try { const v = localStorage.getItem(k); return v ? JSON.parse(v) : null; } catch { return null; }
+  };
+  const dbGet = (k,d) => {
+    try { const v = localStorage.getItem(PREFIX+k); return v ? JSON.parse(v) : d; } catch { return d; }
+  };
+  const dbSet = (k,v) => {
+    try { localStorage.setItem(PREFIX+k, JSON.stringify(v)); return true; } catch(e){ console.error('DB set error', k, e); return false; }
+  };
+  const dbHas = (k) => {
+    return localStorage.getItem(PREFIX+k) !== null;
+  };
+
+  function whenReady(cb){
+    if(window.app) cb(window.app);
+    else setTimeout(()=>whenReady(cb), 200);
+  }
+
+  whenReady((app) => {
+    console.log('[V6 DB] Checking integrity...');
+
+    // --- 1. Migration: old keys without prefix -> prefixed ---
+    let migrated = 0;
+    ALL_DB_KEYS.forEach(key => {
+      const raw = dbGetRaw(key); // without prefix
+      const prefixed = localStorage.getItem(PREFIX+key);
+      if (raw !== null && prefixed === null) {
+        // Migrate
+        try {
+          localStorage.setItem(PREFIX+key, JSON.stringify(raw));
+          localStorage.removeItem(key);
+          migrated++;
+          console.log(`[V6 MIGRATION] ${key} -> ${PREFIX+key}`);
+        } catch(e){}
+      }
+    });
+    if(migrated>0){
+      app.logTerminal && app.logTerminal(`[DB MIGRATION] ${migrated} clés migrées vers format préfixé`);
+    }
+
+    // --- 2. Ensure all keys exist with default if missing ---
+    const defaults = {
+      'storyboard_cards_v1': null, // keep null to use default from initStoryboard
+      'storyboard_connections_v1': [],
+      'google_flow_shots_v1': [],
+      'deployed_agents_v1': [],
+      'custom_skills_v1': [],
+      'n8n_webhooks_v1': [],
+      'plugins_v1': null,
+      'projects_v1': [],
+      'vod_library_v1': [],
+      'badge_registry_v2': [],
+      'generations_hub_v2': [],
+      'whiteboard_draw_strokes_v1': [],
+      'whiteboard_text_annotations_v1': [],
+      'whiteboard_image_annotations_v1': [],
+      'whiteboard_brush_color': '#d2a45a',
+      'whiteboard_brush_size': 4,
+      'wb_pan_x': 0,
+      'wb_pan_y': 0,
+      'wb_zoom': 1.0
+    };
+
+    let created = 0;
+    Object.entries(defaults).forEach(([k, def])=>{
+      if(!dbHas(k) && def !== null){
+        if(Array.isArray(def) || typeof def === 'object'){
+          // Only create empty array/object if not null
+          if(k!=='storyboard_cards_v1' && k!=='plugins_v1'){
+            dbSet(k, def);
+            created++;
+          }
+        } else {
+          dbSet(k, def);
+          created++;
+        }
+      }
+    });
+    if(created>0) console.log(`[V6] ${created} DB keys initialized`);
+
+    // --- 3. Patch saveSettings to ensure immediate save and verify ---
+    const origSaveSettings = app.saveSettings;
+    app.saveSettings = function(){
+      if(origSaveSettings) origSaveSettings.call(this);
+      // Verify keys saved
+      const keysToCheck = ['key_openai','key_gemini','key_anthropic','key_fal','key_mistral','key_kie','key_openrouter','preferred_ai'];
+      let savedCount = 0;
+      keysToCheck.forEach(k=>{
+        if(dbHas(k)) savedCount++;
+      });
+      this.logTerminal && this.logTerminal(`[DB SAVE] ${savedCount}/${keysToCheck.length} clés API sauvegardées`);
+      // Also save brush and drawing immediately
+      dbSet('whiteboard_brush_color', this.currentBrushColor || '#d2a45a');
+      dbSet('whiteboard_brush_size', this.currentBrushSize || 4);
+    };
+
+    // --- 4. Patch all creation methods to ensure immediate DB save ---
+    const origAddCard = app.addStoryboardCard;
+    app.addStoryboardCard = function(type){
+      if(origAddCard) origAddCard.call(this, type);
+      // Force save
+      dbSet('storyboard_cards_v1', this.storyboardCards);
+      console.log('[DB] Card added and saved', type);
+    };
+
+    // Also ensure badge registry saves on every change are using prefixed DB (already via dbSet)
+    if(window.BadgeRegistry){
+      const origSave = window.BadgeRegistry.saveAll;
+      window.BadgeRegistry.saveAll = function(list){
+        dbSet(this.KEY, list);
+        window.dispatchEvent(new CustomEvent('badgeRegistryUpdated'));
+        console.log('[DB] Badge registry saved', list.length);
+      };
+    }
+
+    // Ensure generations hub saves
+    if(app.generationsHub){
+      const origSave = app.generationsHub.save;
+      app.generationsHub.save = function(list){
+        dbSet(this.KEY, list);
+        console.log('[DB] Generations hub saved', list.length);
+      };
+    }
+
+    // Ensure whiteboard drawings save on every change (already via dbSet)
+
+    // --- 5. Add DB Diagnostic UI in Settings ---
+    function addDBDiagnosticUI(){
+      const settingsPanel = document.querySelector('#screen-settings .panel-center');
+      if(!settingsPanel) return;
+      if(document.getElementById('db-diagnostic-section')) return;
+
+      const section = document.createElement('div');
+      section.id = 'db-diagnostic-section';
+      section.style.cssText = 'border-top:1px solid #282833; padding-top:24px; margin-top:24px;';
+      section.innerHTML = `
+        <h3 style="font-size:16px; margin-bottom:8px; color:#d2a45a;">🗄️ Base de Données - Diagnostic & Persistance</h3>
+        <p style="font-size:12px; color:#9aa0a6; margin-bottom:16px;">Vérifie que toutes les données (clés API, badges, plugins, dessins) sont bien sauvegardées en LocalStorage avec préfixe <code style="background:#1e1e26; padding:2px 6px; border-radius:4px;">${PREFIX}</code></p>
+        <div style="display:flex; gap:8px; flex-wrap:wrap; margin-bottom:12px;">
+          <button class="btn-action primary" style="font-size:11px; padding:6px 12px;" onclick="app.dbDiagnostics.check()">🔍 Vérifier DB</button>
+          <button class="btn-action" style="font-size:11px; padding:6px 12px;" onclick="app.dbDiagnostics.exportAll()">📤 Exporter JSON</button>
+          <button class="btn-action" style="font-size:11px; padding:6px 12px;" onclick="document.getElementById('db-import-input').click()">📥 Importer JSON</button>
+          <input type="file" id="db-import-input" accept=".json" style="display:none;" onchange="app.dbDiagnostics.importFile(event)">
+          <button class="btn-action danger" style="font-size:11px; padding:6px 12px;" onclick="app.dbDiagnostics.clearCheck()">🗑️ Clear Test</button>
+        </div>
+        <div id="db-diagnostic-output" style="background:#0a0a0c; border:1px solid #282833; border-radius:8px; padding:12px; font-family:monospace; font-size:10px; color:#9aa0a6; max-height:300px; overflow-y:auto; white-space:pre-wrap;">Clique "Vérifier DB" pour diagnostic...</div>
+        <div id="db-storage-usage" style="margin-top:10px; font-size:10px; color:#9aa0a6; font-family:monospace;"></div>
+      `;
+      settingsPanel.appendChild(section);
+
+      // Add storage usage
+      updateStorageUsage();
+    }
+
+    function updateStorageUsage(){
+      const el = document.getElementById('db-storage-usage');
+      if(!el) return;
+      let total = 0;
+      let count = 0;
+      for(let i=0;i<localStorage.length;i++){
+        const key = localStorage.key(i);
+        if(key && key.startsWith(PREFIX)){
+          const val = localStorage.getItem(key);
+          total += val ? val.length : 0;
+          count++;
+        }
+      }
+      const kb = (total/1024).toFixed(1);
+      el.innerHTML = `📦 Stockage: ${count} clés préfixées, ${kb} KB utilisés / ~5000 KB limite LocalStorage`;
+      if(total > 4*1024*1024) el.innerHTML += '<br><span style="color:#ff453a;">⚠️ Proche de la limite ! Pense à exporter et nettoyer.</span>';
+    }
+
+    app.dbDiagnostics = {
+      check(){
+        const output = document.getElementById('db-diagnostic-output');
+        if(!output) return;
+        let report = `=== DIAGNOSTIC DB ${new Date().toLocaleString()} ===\n\n`;
+        report += `Préfixe: ${PREFIX}\n`;
+        report += `Total localStorage keys: ${localStorage.length}\n`;
+        report += `Clés avec préfixe: ${Object.keys(localStorage).filter(k=>k.startsWith(PREFIX)).length}\n\n`;
+
+        let missing = [];
+        let present = [];
+        let sizes = [];
+
+        ALL_DB_KEYS.forEach(key=>{
+          const prefixedKey = PREFIX+key;
+          const val = localStorage.getItem(prefixedKey);
+          if(val !== null){
+            const size = (val.length/1024).toFixed(2);
+            present.push({key, size, type: (()=>{ try{ const j=JSON.parse(val); return Array.isArray(j)?`Array(${j.length})`:typeof j; } catch{ return 'raw'; } })()});
+            sizes.push(parseFloat(size));
+          } else {
+            // Check if old non-prefixed exists
+            const oldVal = localStorage.getItem(key);
+            if(oldVal !== null){
+              present.push({key: key+' (OLD - sans préfixe !)', size:(oldVal.length/1024).toFixed(2), type:'OLD'});
+            } else {
+              missing.push(key);
+            }
+          }
+        });
+
+        report += `--- ✅ PRÉSENTES (${present.length}) ---\n`;
+        present.forEach(p=>{
+          report += `✅ ${p.key} : ${p.type} - ${p.size} KB\n`;
+        });
+
+        report += `\n--- ❌ MANQUANTES / NON INITIALISÉES (${missing.length}) ---\n`;
+        if(missing.length===0) report += `Aucune ! Toutes les clés principales existent.\n`;
+        else missing.forEach(k=> report += `❌ ${k}\n`);
+
+        report += `\n--- 🔑 CLÉS API DÉTECTÉES ---\n`;
+        ['key_openai','key_gemini','key_anthropic','key_fal','key_mistral','key_kie','key_openrouter'].forEach(k=>{
+          const v = dbGet(k, '');
+          report += `${k}: ${v ? `✅ Présente (${v.substring(0,8)}...${v.slice(-4)}) longueur ${v.length}` : '❌ Vide'}\n`;
+        });
+
+        report += `\n--- 🏷️ BADGES ---\n`;
+        const badges = dbGet('badge_registry_v2', []);
+        report += `Badges: ${badges.length} badges\n`;
+        badges.slice(0,10).forEach(b=> report += `  - ${b.icon||'📌'} ${b.title} (${b.type}) usage:${b.usageCount||0}\n`);
+        if(badges.length>10) report += `  ... et ${badges.length-10} autres\n`;
+
+        report += `\n--- 🔌 PLUGINS ---\n`;
+        const plugins = dbGet('plugins_v1', []);
+        report += `Plugins: ${Array.isArray(plugins)?plugins.length:'?' } plugins\n`;
+
+        report += `\n--- 🎨 DESSINS WHITEBOARD ---\n`;
+        const strokes = dbGet('whiteboard_draw_strokes_v1', []);
+        const texts = dbGet('whiteboard_text_annotations_v1', []);
+        const images = dbGet('whiteboard_image_annotations_v1', []);
+        report += `Traits: ${strokes.length}, Textes: ${texts.length}, Images: ${images.length}\n`;
+
+        output.textContent = report;
+        updateStorageUsage();
+        app.logTerminal && app.logTerminal(`[DB DIAG] Vérification terminée - ${present.length} clés présentes, ${missing.length} manquantes`);
+      },
+      exportAll(){
+        const exportData = {};
+        ALL_DB_KEYS.forEach(key=>{
+          const val = dbGet(key, null);
+          if(val !== null) exportData[key] = val;
+        });
+        // Also include all prefixed keys
+        for(let i=0;i<localStorage.length;i++){
+          const fullKey = localStorage.key(i);
+          if(fullKey && fullKey.startsWith(PREFIX)){
+            const shortKey = fullKey.replace(PREFIX,'');
+            if(!(shortKey in exportData)){
+              try{ exportData[shortKey] = JSON.parse(localStorage.getItem(fullKey)); } catch{ exportData[shortKey] = localStorage.getItem(fullKey); }
+            }
+          }
+        }
+        const blob = new Blob([JSON.stringify(exportData, null, 2)], {type:'application/json'});
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `blacklaw_backup_${new Date().toISOString().slice(0,10)}.json`;
+        a.click();
+        URL.revokeObjectURL(url);
+        app.logTerminal && app.logTerminal(`[DB EXPORT] ${Object.keys(exportData).length} clés exportées`);
+        alert(`Export JSON de ${Object.keys(exportData).length} clés !`);
+      },
+      importFile(event){
+        const file = event.target.files[0];
+        if(!file) return;
+        const reader = new FileReader();
+        reader.onload = (e)=>{
+          try{
+            const data = JSON.parse(e.target.result);
+            let count=0;
+            Object.entries(data).forEach(([k,v])=>{
+              dbSet(k, v);
+              count++;
+            });
+            alert(`${count} clés importées ! Rechargement...`);
+            app.logTerminal && app.logTerminal(`[DB IMPORT] ${count} clés importées depuis JSON`);
+            setTimeout(()=>window.location.reload(), 800);
+          } catch(err){
+            alert('Erreur JSON: '+err.message);
+          }
+        };
+        reader.readAsText(file);
+      },
+      clearCheck(){
+        if(!confirm('Test: effacer une clé vide de test ? (ne supprime pas tes vraies données)')) return;
+        const testKey = 'test_empty_key';
+        localStorage.removeItem(PREFIX+testKey);
+        localStorage.removeItem(testKey);
+        alert('Test clear fait - vérifie que tes vraies données restent');
+        this.check();
+      }
+    };
+
+    // Add UI after delay
+    setTimeout(addDBDiagnosticUI, 1000);
+
+    // Also ensure immediate save on any card change
+    const origRenderCards = app.renderStoryboardCards;
+    app.renderStoryboardCards = function(){
+      if(origRenderCards) origRenderCards.call(this);
+      // Ensure DB has latest
+      dbSet('storyboard_cards_v1', this.storyboardCards);
+    };
+
+    // Ensure whiteboard drawings are saved immediately after each draw (already done in V5, but double-check)
+    const origClearDraw = app.clearWhiteboardDrawings;
+    if(origClearDraw){
+      app.clearWhiteboardDrawings = function(){
+        if(!confirm('Effacer TOUS les traits ? (Cards conservées)')) return;
+        this.whiteboardDrawStrokes=[];
+        this.whiteboardTextAnnotations=[];
+        this.whiteboardImageAnnotations=[];
+        dbSet('whiteboard_draw_strokes_v1', []);
+        dbSet('whiteboard_text_annotations_v1', []);
+        dbSet('whiteboard_image_annotations_v1', []);
+        this.renderWhiteboardDrawings();
+        this.renderWhiteboardTextAnnotations();
+        this.renderWhiteboardImageAnnotations();
+      };
+    }
+
+    // Final log
+    setTimeout(()=>{
+      const presentCount = ALL_DB_KEYS.filter(k=> localStorage.getItem(PREFIX+k)!==null).length;
+      console.log(`[V6 DB] Integrity check done - ${presentCount}/${ALL_DB_KEYS.length} keys present`);
+      app.logTerminal && app.logTerminal(`[V6 DB] Intégrité vérifiée - ${presentCount}/${ALL_DB_KEYS.length} clés en DB. Clés API, badges, plugins, dessins persistants. Utilise Settings > Diagnostic DB pour export.`);
+    }, 1500);
+  });
+})();
+
+  </script>
+
+  <!-- V7 AUTO BACKUP -->
+  <script>
+/** V7 - Auto Backup quotidien si > 1 Mo */
+(() => {
+  const PREFIX = 'blacklaw_cinematic_';
+  const dbGet = (k,d)=>{ try{ const v=localStorage.getItem(PREFIX+k); return v?JSON.parse(v):d; }catch{ return d; } };
+  const dbSet = (k,v)=>{ try{ localStorage.setItem(PREFIX+k, JSON.stringify(v)); }catch(e){ console.error(e); } };
+  const dbGetRawSize = () => {
+    let total=0;
+    for(let i=0;i<localStorage.length;i++){
+      const key=localStorage.key(i);
+      if(key && key.startsWith(PREFIX)){
+        const val=localStorage.getItem(key);
+        total+= (val?val.length:0) + key.length;
+      }
+    }
+    return total;
+  };
+
+  function whenReady(cb){
+    if(window.app) cb(window.app);
+    else setTimeout(()=>whenReady(cb), 300);
+  }
+
+  whenReady((app) => {
+    console.log('[V7 AUTO BACKUP] Init');
+
+    const DEFAULTS = {
+      autoBackupEnabled: true,
+      autoBackupThresholdKB: 1024, // 1 Mo
+      autoBackupKeepCount: 5
+    };
+
+    // Load settings
+    const getAutoBackupSettings = () => {
+      return {
+        enabled: dbGet('auto_backup_enabled', DEFAULTS.autoBackupEnabled),
+        thresholdKB: dbGet('auto_backup_threshold_kb', DEFAULTS.autoBackupThresholdKB),
+        keepCount: dbGet('auto_backup_keep_count', DEFAULTS.autoBackupKeepCount),
+        lastBackupDate: dbGet('last_auto_backup_date', null),
+        lastBackupSize: dbGet('last_auto_backup_size', 0)
+      };
+    };
+
+    const saveAutoBackupSettings = (settings) => {
+      dbSet('auto_backup_enabled', settings.enabled);
+      dbSet('auto_backup_threshold_kb', settings.thresholdKB);
+      dbSet('auto_backup_keep_count', settings.keepCount);
+    };
+
+    const exportAllDB = () => {
+      const exportData = {};
+      const allKeys = [];
+      for(let i=0;i<localStorage.length;i++){
+        const fullKey=localStorage.key(i);
+        if(fullKey && fullKey.startsWith(PREFIX)){
+          const shortKey=fullKey.replace(PREFIX,'');
+          allKeys.push(shortKey);
+          try{ exportData[shortKey]=JSON.parse(localStorage.getItem(fullKey)); }
+          catch{ exportData[shortKey]=localStorage.getItem(fullKey); }
+        }
+      }
+      exportData['_export_meta'] = {
+        date: new Date().toISOString(),
+        totalKeys: allKeys.length,
+        totalSizeKB: (dbGetRawSize()/1024).toFixed(1),
+        app: 'BLACKLAW Cinematic Prompt Studio',
+        version: 'V7 Auto Backup'
+      };
+      return {data: exportData, keys: allKeys};
+    };
+
+    const triggerDownload = (exportObj, filename) => {
+      try{
+        const blob = new Blob([JSON.stringify(exportObj.data, null, 2)], {type:'application/json'});
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href=url;
+        a.download=filename;
+        a.style.display='none';
+        document.body.appendChild(a);
+        a.click();
+        setTimeout(()=>{
+          document.body.removeChild(a);
+          URL.revokeObjectURL(url);
+        }, 1000);
+        return true;
+      } catch(e){
+        console.error('Auto backup download failed', e);
+        return false;
+      }
+    };
+
+    const performAutoBackup = (reason) => {
+      const settings = getAutoBackupSettings();
+      if(!settings.enabled){
+        console.log('[AUTO BACKUP] Désactivé, skip');
+        return false;
+      }
+
+      const {data} = exportAllDB();
+      const sizeKB = dbGetRawSize()/1024;
+      const dateStr = new Date().toISOString().slice(0,10);
+      const filename = `blacklaw_auto_backup_${dateStr}_${Math.round(sizeKB)}KB.json`;
+
+      const success = triggerDownload(data, filename);
+      if(success){
+        const now = new Date().toISOString();
+        dbSet('last_auto_backup_date', now);
+        dbSet('last_auto_backup_size', sizeKB);
+        dbSet('last_auto_backup_filename', filename);
+        // Keep history of backups
+        let history = dbGet('auto_backup_history', []);
+        history.unshift({date: now, filename, sizeKB: sizeKB.toFixed(1), reason});
+        if(history.length > settings.keepCount){
+          history = history.slice(0, settings.keepCount);
+        }
+        dbSet('auto_backup_history', history);
+
+        if(app.logTerminal){
+          app.logTerminal(`[AUTO BACKUP] ✅ Sauvegarde auto déclenchée (${reason}) - ${sizeKB.toFixed(1)} KB -> ${filename} dans Downloads`);
+        }
+        // Show notification in UI
+        showBackupNotification(filename, sizeKB, reason);
+        console.log(`[AUTO BACKUP] Done: ${filename}`);
+        return true;
+      } else {
+        // Fallback: store in DB as latest
+        dbSet('auto_backup_latest', data);
+        dbSet('last_auto_backup_date', new Date().toISOString());
+        if(app.logTerminal){
+          app.logTerminal(`[AUTO BACKUP] ⚠️ Téléchargement auto bloqué par navigateur, backup stocké en DB (auto_backup_latest). Clique sur Exporter pour le récupérer.`);
+        }
+        showBackupNotification(null, 0, 'fallback - voir Diagnostic DB');
+        return false;
+      }
+    };
+
+    const showBackupNotification = (filename, sizeKB, reason) => {
+      // Remove old notification
+      const old = document.getElementById('auto-backup-notification');
+      if(old) old.remove();
+
+      const notif = document.createElement('div');
+      notif.id='auto-backup-notification';
+      notif.style.cssText=`
+        position:fixed; bottom:20px; right:20px; z-index:9999;
+        background:#18181f; border:1px solid #d2a45a; border-radius:12px;
+        padding:14px 16px; width:320px; box-shadow:0 12px 32px rgba(0,0,0,0.7);
+        font-family:var(--font-mono, monospace); font-size:11px; color:#f0f0f5;
+        animation: badgePop 0.3s ease;
+      `;
+      notif.innerHTML=`
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">
+          <span style="font-weight:800; color:#d2a45a; font-size:12px;">💾 AUTO BACKUP</span>
+          <span style="cursor:pointer; color:#9aa0a6;" onclick="document.getElementById('auto-backup-notification')?.remove()">✕</span>
+        </div>
+        <div style="color:#9aa0a6; line-height:1.4; margin-bottom:10px;">
+          ${filename ? `Sauvegarde quotidienne effectuée car DB > 1 Mo (${sizeKB.toFixed(1)} KB).<br>Fichier: <strong style="color:#fff;">${filename}</strong> dans <code style="background:#1e1e26; padding:2px 6px; border-radius:4px;">Downloads</code><br>Raison: ${reason}` : `Backup stocké en DB (navigateur bloque téléchargement auto). Va dans Settings > Diagnostic DB > Exporter.`}
+        </div>
+        <div style="display:flex; gap:6px;">
+          <button class="btn-action primary" style="flex:1; font-size:10px; padding:6px;" onclick="app.dbDiagnostics && app.dbDiagnostics.exportAll(); document.getElementById('auto-backup-notification')?.remove();">📤 Voir Exports</button>
+          <button class="btn-action" style="flex:1; font-size:10px; padding:6px;" onclick="document.getElementById('auto-backup-notification')?.remove()">Fermer</button>
+        </div>
+      `;
+      document.body.appendChild(notif);
+      setTimeout(()=>{ const el=document.getElementById('auto-backup-notification'); if(el) el.remove(); }, 12000);
+    };
+
+    const checkAndBackupIfNeeded = () => {
+      const settings = getAutoBackupSettings();
+      if(!settings.enabled) return;
+
+      const sizeBytes = dbGetRawSize();
+      const sizeKB = sizeBytes/1024;
+      const thresholdBytes = settings.thresholdKB * 1024;
+
+      const lastDateStr = settings.lastBackupDate;
+      let lastDate = null;
+      try{ lastDate = lastDateStr ? new Date(lastDateStr) : null; } catch{}
+      const today = new Date().toISOString().slice(0,10);
+      const lastDateOnly = lastDate ? lastDate.toISOString().slice(0,10) : null;
+      const isNewDay = lastDateOnly !== today;
+
+      console.log(`[AUTO BACKUP CHECK] Size: ${sizeKB.toFixed(1)} KB / Threshold: ${settings.thresholdKB} KB, Last: ${lastDateOnly}, Today: ${today}, isNewDay: ${isNewDay}`);
+
+      if(sizeKB >= settings.thresholdKB){
+        if(isNewDay){
+          performAutoBackup(`DB > ${settings.thresholdKB} KB (${sizeKB.toFixed(1)} KB) - quotidien`);
+        } else {
+          console.log('[AUTO BACKUP] Déjà sauvegardé aujourd\'hui, skip');
+        }
+      } else {
+        console.log('[AUTO BACKUP] Taille sous seuil, pas de backup');
+      }
+    };
+
+    // --- UI in Settings ---
+    function injectAutoBackupUI(){
+      const section = document.getElementById('db-diagnostic-section');
+      if(!section) {
+        setTimeout(injectAutoBackupUI, 1000);
+        return;
+      }
+      if(document.getElementById('auto-backup-settings')) return;
+
+      const settings = getAutoBackupSettings();
+      const div = document.createElement('div');
+      div.id='auto-backup-settings';
+      div.style.cssText='margin-top:20px; padding:16px; background:rgba(210,164,90,0.06); border:1px solid rgba(210,164,90,0.2); border-radius:10px;';
+      div.innerHTML=`
+        <h4 style="font-size:13px; color:#d2a45a; margin-bottom:10px; display:flex; align-items:center; gap:8px;">💾 Auto Backup Quotidien <span style="font-size:9px; background:#d2a45a; color:#000; padding:2px 6px; border-radius:10px;">NOUVEAU</span></h4>
+        <p style="font-size:11px; color:#9aa0a6; margin-bottom:12px; line-height:1.4;">Si la DB dépasse le seuil, une sauvegarde JSON est automatiquement téléchargée dans <code style="background:#1e1e26; padding:2px 6px; border-radius:4px;">Downloads</code> une fois par jour.</p>
+        <div style="display:flex; flex-direction:column; gap:10px;">
+          <label style="display:flex; align-items:center; gap:8px; font-size:11px; color:#f0f0f5; cursor:pointer;">
+            <input type="checkbox" id="auto-backup-enabled" ${settings.enabled?'checked':''} style="accent-color:#d2a45a;">
+            <span>Activer auto-backup quotidien</span>
+          </label>
+          <div style="display:grid; grid-template-columns:1fr 1fr; gap:10px;">
+            <div class="custom-input-group">
+              <span class="field-label">Seuil (KB) - défaut 1024 = 1 Mo</span>
+              <input type="number" id="auto-backup-threshold" class="input-text" value="${settings.thresholdKB}" min="100" max="5000" step="100" style="background:#1e1e26; font-size:12px;">
+            </div>
+            <div class="custom-input-group">
+              <span class="field-label">Historique à garder (fichiers)</span>
+              <input type="number" id="auto-backup-keep" class="input-text" value="${settings.keepCount}" min="1" max="20" step="1" style="background:#1e1e26; font-size:12px;">
+            </div>
+          </div>
+          <div style="display:flex; gap:8px;">
+            <button class="btn-action primary" style="font-size:10px; padding:6px 12px; flex:1;" onclick="app.autoBackup.saveSettings()">💾 Sauver Réglages</button>
+            <button class="btn-action" style="font-size:10px; padding:6px 12px; flex:1;" onclick="app.autoBackup.triggerManual()">▶️ Backup Manuel Maintenant</button>
+          </div>
+          <div id="auto-backup-status" style="font-size:10px; color:#9aa0a6; font-family:monospace; background:#0a0a0c; border:1px solid #282833; border-radius:6px; padding:8px; margin-top:6px; line-height:1.5;">
+            Chargement statut...
+          </div>
+          <div id="auto-backup-history" style="margin-top:8px;"></div>
+        </div>
+      `;
+      section.appendChild(div);
+
+      // Listeners
+      document.getElementById('auto-backup-enabled').addEventListener('change', ()=> app.autoBackup.saveSettings());
+      document.getElementById('auto-backup-threshold').addEventListener('change', ()=> app.autoBackup.saveSettings());
+      document.getElementById('auto-backup-keep').addEventListener('change', ()=> app.autoBackup.saveSettings());
+
+      app.autoBackup.refreshStatus();
+    }
+
+    app.autoBackup = {
+      getSettings: getAutoBackupSettings,
+      saveSettings(){
+        const enabled = document.getElementById('auto-backup-enabled')?.checked ?? true;
+        const threshold = parseInt(document.getElementById('auto-backup-threshold')?.value) || 1024;
+        const keep = parseInt(document.getElementById('auto-backup-keep')?.value) || 5;
+        dbSet('auto_backup_enabled', enabled);
+        dbSet('auto_backup_threshold_kb', threshold);
+        dbSet('auto_backup_keep_count', keep);
+        this.refreshStatus();
+        if(app.logTerminal) app.logTerminal(`[AUTO BACKUP] Réglages sauvés - Enabled:${enabled} Threshold:${threshold}KB Keep:${keep}`);
+      },
+      refreshStatus(){
+        const statusEl = document.getElementById('auto-backup-status');
+        const historyEl = document.getElementById('auto-backup-history');
+        if(!statusEl) return;
+        const settings = getAutoBackupSettings();
+        const sizeKB = (dbGetRawSize()/1024).toFixed(1);
+        const lastDate = settings.lastBackupDate ? new Date(settings.lastBackupDate).toLocaleString() : 'Jamais';
+        const lastSize = settings.lastBackupSize ? settings.lastBackupSize.toFixed(1)+' KB' : '-';
+        const lastFile = dbGet('last_auto_backup_filename', '-');
+
+        statusEl.innerHTML = `
+          📦 Taille actuelle DB: <strong style="color:${parseFloat(sizeKB) > settings.thresholdKB ? '#ff453a' : '#49c490'}">${sizeKB} KB</strong> / Seuil: ${settings.thresholdKB} KB ${parseFloat(sizeKB) > settings.thresholdKB ? '⚠️ Dépassé !' : '✅ OK'}<br>
+          🕒 Dernier backup: ${lastDate} (${lastSize})<br>
+          📄 Fichier: ${lastFile}<br>
+          ⚙️ Activé: ${settings.enabled?'✅ Oui':'❌ Non'} | Garde: ${settings.keepCount} fichiers
+        `;
+
+        if(historyEl){
+          const history = dbGet('auto_backup_history', []);
+          if(history.length===0){
+            historyEl.innerHTML = `<div style="font-size:9px; color:#9aa0a6; font-style:italic;">Aucun historique de backup</div>`;
+          } else {
+            historyEl.innerHTML = `
+              <div style="font-size:10px; color:#d2a45a; font-weight:700; margin-bottom:6px;">📜 Historique (${history.length})</div>
+              <div style="display:flex; flex-direction:column; gap:4px; max-height:120px; overflow-y:auto;">
+                ${history.map(h=>`
+                  <div style="display:flex; justify-content:space-between; align-items:center; background:#0a0a0c; border:1px solid #282833; border-radius:4px; padding:4px 8px; font-size:9px; font-family:monospace;">
+                    <span style="color:#9aa0a6;">${new Date(h.date).toLocaleDateString()} ${new Date(h.date).toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'})}</span>
+                    <span style="color:#f0f0f5;">${h.sizeKB} KB</span>
+                    <span style="color:#9aa0a6; max-width:100px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;" title="${h.filename}">${h.filename}</span>
+                  </div>
+                `).join('')}
+              </div>
+            `;
+          }
+        }
+      },
+      triggerManual(){
+        const sizeKB = dbGetRawSize()/1024;
+        performAutoBackup(`manuel - ${sizeKB.toFixed(1)} KB`);
+        setTimeout(()=>this.refreshStatus(), 1500);
+      },
+      check: checkAndBackupIfNeeded
+    };
+
+    // Auto check on load + every hour
+    setTimeout(()=>{
+      injectAutoBackupUI();
+      checkAndBackupIfNeeded();
+      // Check every hour
+      setInterval(checkAndBackupIfNeeded, 60*60*1000);
+      // Also check on visibility change (when user comes back)
+      document.addEventListener('visibilitychange', ()=>{
+        if(!document.hidden){
+          setTimeout(checkAndBackupIfNeeded, 2000);
+        }
+      });
+      console.log('[V7 AUTO BACKUP] Ready - check quotidien si > seuil Mo');
+      if(app.logTerminal) app.logTerminal(`[AUTO BACKUP] Système activé - seuil ${getAutoBackupSettings().thresholdKB} KB, vérif quotidienne + à chaque retour sur l'onglet`);
+    }, 2000);
+  });
+})();
+
+  </script>
+
+  <!-- V9 TOOLBAR CLICKABLE FIX - SELECT MARQUEE + TEXT SUBMENU -->
+  <script>
+/** V9 - Fix toolbar blocked on selection, all tools clickable and functional **/
+(() => {
+  const PREFIX = 'blacklaw_cinematic_';
+  const dbGet = (k,d)=>{ try{ const v=localStorage.getItem(PREFIX+k); return v?JSON.parse(v):d; }catch{ return d; } };
+  const dbSet = (k,v)=>{ try{ localStorage.setItem(PREFIX+k, JSON.stringify(v)); }catch(e){} };
+
+  function whenReady(cb){
+    if(window.app && document.getElementById('storyboard-grid')) cb(window.app);
+    else setTimeout(()=>whenReady(cb), 200);
+  }
+
+  whenReady((app) => {
+    console.log('[V9] Fixing toolbar clickability');
+
+    // Ensure canvases exist
+    function ensureCanvases(){
+      const grid=document.getElementById('storyboard-grid');
+      if(!grid) return {};
+      let draw=document.getElementById('whiteboard-draw-layer');
+      if(!draw){
+        draw=document.createElement('canvas');
+        draw.id='whiteboard-draw-layer'; draw.width=4000; draw.height=4000;
+        draw.style.cssText='position:absolute; top:0; left:0; width:4000px; height:4000px; z-index:5; pointer-events:none;';
+        grid.appendChild(draw);
+      }
+      let temp=document.getElementById('whiteboard-temp-layer');
+      if(!temp){
+        temp=document.createElement('canvas');
+        temp.id='whiteboard-temp-layer'; temp.width=4000; temp.height=4000;
+        temp.style.cssText='position:absolute; top:0; left:0; width:4000px; height:4000px; z-index:6; pointer-events:none;';
+        grid.appendChild(temp);
+      }
+      return {draw, temp};
+    }
+    ensureCanvases();
+
+    // Inject CSS to make toolbar always on top and clickable
+    if(!document.getElementById('v9-toolbar-fix')){
+      const s=document.createElement('style');
+      s.id='v9-toolbar-fix';
+      s.textContent=`
+        .whiteboard-floating-toolbar {
+          position:absolute !important;
+          top:20px !important; left:20px !important;
+          width:62px !important; max-height:88vh !important;
+          overflow-y:auto !important; overflow-x:hidden !important;
+          z-index:999 !important;
+          pointer-events:auto !important;
+          background:rgba(18,18,22,0.98) !important;
+          border:2px solid #282833 !important;
+          border-radius:16px !important;
+          padding:10px 6px !important;
+          display:flex !important; flex-direction:column !important; gap:7px !important;
+        }
+        .whiteboard-floating-toolbar * { pointer-events:auto !important; }
+        .toolbar-btn {
+          width:44px !important; height:44px !important;
+          min-width:44px !important; min-height:44px !important;
+          border-radius:10px !important;
+          display:flex !important; align-items:center !important; justify-content:center !important;
+          background:#1e1e26 !important; border:1px solid #282833 !important; color:#9aa0a6 !important;
+          cursor:pointer !important; pointer-events:auto !important;
+          position:relative !important; z-index:1000 !important;
+        }
+        .toolbar-btn:hover { background:rgba(210,164,90,0.2) !important; border-color:#d2a45a !important; color:#d2a45a !important; transform:scale(1.05); }
+        .toolbar-btn.active { background:#d2a45a !important; color:#000 !important; border-color:#d2a45a !important; box-shadow:0 0 14px rgba(210,164,90,0.6) !important; }
+        .toolbar-btn:active { transform:scale(0.95); }
+        .tool-submenu {
+          position:absolute !important; left:70px !important; top:0 !important;
+          background:rgba(18,18,22,0.98) !important; border:1px solid #282833 !important;
+          border-radius:12px !important; padding:14px !important; width:220px !important;
+          box-shadow:0 14px 36px rgba(0,0,0,0.8) !important; z-index:1001 !important;
+          pointer-events:auto !important;
+        }
+        #selection-marquee { position:absolute; border:2px dashed #d2a45a; background:rgba(210,164,90,0.15); z-index:200; pointer-events:none; border-radius:6px; }
+        .whiteboard-text-annotation { pointer-events:auto !important; z-index:35 !important; }
+        .whiteboard-image-annotation { pointer-events:auto !important; z-index:32 !important; }
+        #whiteboard-draw-layer.active, #whiteboard-temp-layer.active { pointer-events:auto !important; z-index:10 !important; }
+      `;
+      document.head.appendChild(s);
+    }
+
+    // Completely rebuild toolbar with guaranteed clickable buttons
+    function buildToolbarFix(){
+      const oldToolbar = document.querySelector('.whiteboard-floating-toolbar');
+      if(!oldToolbar) return;
+
+      // Preserve current tool
+      const currentTool = app.currentChalkboardTool || 'select';
+
+      // Create new toolbar element to replace old (to remove any broken listeners)
+      const newToolbar = document.createElement('div');
+      newToolbar.className = 'whiteboard-floating-toolbar';
+      newToolbar.id = 'whiteboard-floating-toolbar-fixed';
+
+      const colors = ['#d2a45a','#6398f7','#49c490','#f2c94c','#eb5757','#ffffff','#000000'];
+      const textColors = ['#f2c94c','#ffffff','#d2a45a','#49c490','#6398f7','#eb5757','#000000'];
+
+      newToolbar.innerHTML = `
+        <button class="toolbar-btn ${currentTool==='select'?'active':''}" id="tool-select" data-tool="select" title="Sélection (V) - Drag pour zone">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="3 3 10.07 19.97 12.58 12.58 19.97 10.07 3 3"></polygon></svg>
+        </button>
+        <button class="toolbar-btn ${currentTool==='pan'?'active':''}" id="tool-pan" data-tool="pan" title="Main (H) Déplacer">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 11V6a2 2 0 0 0-2-2v0a2 2 0 0 0-2 2v5"></path><path d="M14 10V4a2 2 0 0 0-2-2v0a2 2 0 0 0-2 2v6"></path><path d="M10 10.5V6a2 2 0 0 0-2-2v0a2 2 0 0 0-2 2v4.5"></path><path d="M6 10V8a2 2 0 0 0-2-2v0a2 2 0 0 0-2 2v5c0 5.5 4.5 10 10 10s10-4.5 10-10V11a2 2 0 0 0-2-2v0a2 2 0 0 0-2 2"></path></svg>
+        </button>
+        <div class="toolbar-separator"></div>
+
+        <div style="position:relative;">
+          <button class="toolbar-btn ${currentTool==='text'?'active':''}" id="tool-text" data-tool="text" title="Texte (T) - Clique pour écrire + sous-menu couleurs/tailles">
+            <span style="font-weight:900; font-size:18px;">T</span>
+          </button>
+          <div class="tool-submenu" id="submenu-text" style="display:none;">
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px;">
+              <span style="font-size:11px; font-weight:800; color:#d2a45a; font-family:monospace; text-transform:uppercase;">Texte - Options</span>
+              <span style="cursor:pointer; color:#9aa0a6; font-size:14px;" onclick="document.getElementById('submenu-text').style.display='none'">✕</span>
+            </div>
+            <div style="font-size:9px; color:#9aa0a6; font-family:monospace; margin-bottom:6px;">Couleur texte</div>
+            <div style="display:grid; grid-template-columns:repeat(4,1fr); gap:8px; margin-bottom:12px;">
+              ${textColors.map(c=>`<div class="toolbar-color-dot ${c===(app.currentTextColor||'#f2c94c')?'active':''}" style="background:${c}; width:22px; height:22px; border-radius:50%; cursor:pointer; border:2px solid ${c===(app.currentTextColor||'#f2c94c')?'#fff':'transparent'};" data-color="${c}" data-type="text" onclick="app.setTextColor('${c}'); this.parentElement.querySelectorAll('.toolbar-color-dot').forEach(d=>d.style.borderColor='transparent'); this.style.borderColor='#fff'"></div>`).join('')}
+            </div>
+            <div style="font-size:9px; color:#9aa0a6; font-family:monospace; margin-bottom:6px;">Taille: <span id="text-size-display">${app.currentTextSize||15}px</span></div>
+            <input type="range" min="10" max="48" value="${app.currentTextSize||15}" style="width:100%; accent-color:#d2a45a; margin-bottom:10px;" oninput="app.setTextSize(this.value); document.getElementById('text-size-display').textContent=this.value+'px'">
+            <div style="font-size:9px; color:#9aa0a6; font-family:monospace; line-height:1.3;">💡 Clique sur le tableau pour placer un texte. Double-clique pour éditer. Clic droit pour supprimer.</div>
+          </div>
+        </div>
+
+        <button class="toolbar-btn ${currentTool==='pencil'?'active':''}" id="tool-pencil" data-tool="pencil" title="Crayon (P) - Dessin libre">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 3a2.85 2.85 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z"></path></svg>
+        </button>
+        <button class="toolbar-btn ${currentTool==='eraser'?'active':''}" id="tool-eraser" data-tool="eraser" title="Gomme (E) - Efface tout">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 20H7L3 16C2 15 2 13 3 12L13 2L22 11L20 20Z"></path><path d="M17 17L7 7"></path></svg>
+        </button>
+
+        <div class="toolbar-separator"></div>
+
+        <button class="toolbar-btn ${currentTool==='rect'?'active':''}" id="tool-rect" data-tool="rect" title="Rectangle (R)"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2"></rect></svg></button>
+        <button class="toolbar-btn ${currentTool==='circle'?'active':''}" id="tool-circle" data-tool="circle" title="Cercle (C)"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"></circle></svg></button>
+        <button class="toolbar-btn ${currentTool==='arrow'?'active':''}" id="tool-arrow" data-tool="arrow" title="Flèche (A)"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="5" y1="12" x2="19" y2="12"></line><polyline points="12 5 19 12 12 19"></polyline></svg></button>
+        <button class="toolbar-btn ${currentTool==='line'?'active':''}" id="tool-line" data-tool="line" title="Ligne (L)"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="4" y1="20" x2="20" y2="4"></line></svg></button>
+
+        <div class="toolbar-separator"></div>
+
+        <button class="toolbar-btn" id="tool-note" title="Post-it (N)">📝</button>
+        <button class="toolbar-btn" id="tool-image" title="Image (I)">🖼️</button>
+        <button class="toolbar-btn" id="tool-frame" title="Cadre">🔲</button>
+
+        <div class="toolbar-separator"></div>
+
+        <div style="display:flex; flex-direction:column; gap:6px; align-items:center; padding:4px 0;">
+          <div style="font-size:8px; font-family:monospace; color:#9aa0a6; font-weight:700;">COULEUR</div>
+          <div style="display:flex; flex-direction:column; gap:5px;">
+            ${colors.map(c=>`<div class="toolbar-color-dot ${c===app.currentBrushColor?'active':''}" data-color="${c}" style="background:${c};" title="${c}" data-type="brush" onclick="app.setBrushColor('${c}')"></div>`).join('')}
+          </div>
+          <input type="color" value="${app.currentBrushColor||'#d2a45a'}" style="width:32px; height:22px; border:none; border-radius:6px; cursor:pointer; background:transparent;" oninput="app.setBrushColor(this.value)">
+        </div>
+
+        <div class="toolbar-separator"></div>
+
+        <div style="display:flex; flex-direction:column; gap:4px; align-items:center;">
+          <div style="font-size:8px; font-family:monospace; color:#9aa0a6; font-weight:700;">TAILLE</div>
+          <input type="range" min="1" max="28" value="${app.currentBrushSize||4}" style="width:42px; accent-color:#d2a45a;" oninput="app.setBrushSize(this.value)">
+          <span style="font-size:10px; color:#d2a45a; font-family:monospace; font-weight:700;" id="brush-size-label-v9">${app.currentBrushSize||4}px</span>
+        </div>
+
+        <div class="toolbar-separator"></div>
+
+        <button class="toolbar-btn" id="tool-clear" title="Effacer tout" style="color:#ff453a;">🗑️</button>
+      `;
+
+      // Replace old toolbar with new
+      oldToolbar.parentNode.replaceChild(newToolbar, oldToolbar);
+      newToolbar.id = 'whiteboard-floating-toolbar-fixed';
+      newToolbar.className = 'whiteboard-floating-toolbar';
+
+      // Add event listeners with delegation - MORE RELIABLE than inline onclick
+      newToolbar.addEventListener('click', (e) => {
+        const btn = e.target.closest('.toolbar-btn');
+        if(!btn) return;
+        const tool = btn.dataset.tool;
+        if(tool){
+          e.preventDefault();
+          e.stopPropagation();
+          console.log('[V9] Toolbar click:', tool);
+          app.setChalkboardTool(tool);
+          // Show text submenu if text tool
+          if(tool==='text'){
+            const submenu = document.getElementById('submenu-text');
+            if(submenu) submenu.style.display = 'block';
+          }
+        } else {
+          // Handle special buttons without data-tool
+          if(btn.id==='tool-note'){
+            app.addStoryboardCard('note');
+          } else if(btn.id==='tool-image'){
+            document.getElementById('whiteboard-image-input')?.click();
+          } else if(btn.id==='tool-frame'){
+            app.addStoryboardCard('square');
+          } else if(btn.id==='tool-clear'){
+            app.clearWhiteboardDrawings();
+          }
+        }
+      });
+
+      // Ensure image input exists
+      if(!document.getElementById('whiteboard-image-input')){
+        const inp=document.createElement('input');
+        inp.type='file'; inp.accept='image/*'; inp.id='whiteboard-image-input'; inp.style.display='none';
+        inp.addEventListener('change', (e)=>{
+          if(e.target.files && e.target.files[0]){
+            const file=e.target.files[0];
+            const reader=new FileReader();
+            reader.onload=(ev)=>{
+              const src=ev.target.result;
+              const vp=document.getElementById('storyboard-viewport');
+              let x=500, y=400;
+              if(vp){
+                const panX=app.whiteboardPanX||0, panY=app.whiteboardPanY||0, zoom=app.whiteboardZoom||1;
+                const vpRect=vp.getBoundingClientRect();
+                x = (vpRect.width/2 - panX +1500)/zoom;
+                y = (vpRect.height/2 - panY +1500)/zoom;
+              }
+              const ann={id:'wimg_'+Date.now(), x, y, src, w:280, h:200};
+              app.whiteboardImageAnnotations.push(ann);
+              dbSet('whiteboard_image_annotations_v1', app.whiteboardImageAnnotations);
+              app.renderWhiteboardImageAnnotations();
+              app.logTerminal && app.logTerminal(`[IMAGE] Importée ${file.name}`);
+            };
+            reader.readAsDataURL(file);
+          }
+          e.target.value='';
+        });
+        document.body.appendChild(inp);
+      }
+
+      console.log('[V9] Toolbar rebuilt with clickable buttons');
+    }
+
+    // Override setChalkboardTool to be more robust
+    const originalSetTool = app.setChalkboardTool;
+    app.setChalkboardTool = function(tool){
+      console.log('[V9] setChalkboardTool called:', tool);
+      this.currentChalkboardTool = tool;
+      // Update active states - query both old and new toolbar
+      document.querySelectorAll('.whiteboard-floating-toolbar .toolbar-btn').forEach(b=>{
+        b.classList.toggle('active', b.dataset.tool===tool);
+      });
+      const vp=document.getElementById('storyboard-viewport');
+      const drawLayer=document.getElementById('whiteboard-draw-layer');
+      const tempLayer=document.getElementById('whiteboard-temp-layer');
+      if(vp){
+        if(tool==='pan') vp.style.cursor='grab';
+        else if(['pencil','rect','circle','arrow','line'].includes(tool)) vp.style.cursor='crosshair';
+        else if(tool==='text') vp.style.cursor='text';
+        else if(tool==='eraser') vp.style.cursor='cell';
+        else vp.style.cursor='default';
+      }
+      if(drawLayer){
+        if(['pencil','eraser','rect','circle','arrow','line','text'].includes(tool)){
+          drawLayer.classList.add('active');
+          drawLayer.style.pointerEvents='auto';
+        } else {
+          drawLayer.classList.remove('active');
+          drawLayer.style.pointerEvents='none';
+        }
+      }
+      if(tempLayer){
+        if(['rect','circle','arrow','line','pencil'].includes(tool)){
+          tempLayer.classList.add('active');
+          tempLayer.style.pointerEvents='auto';
+        } else {
+          tempLayer.classList.remove('active');
+          tempLayer.style.pointerEvents='none';
+        }
+      }
+      // Handle text submenu
+      const submenu=document.getElementById('submenu-text');
+      if(submenu){
+        submenu.style.display = tool==='text' ? 'block' : 'none';
+      }
+      this.logTerminal && this.logTerminal(`[TOOL] ${tool.toUpperCase()} activé - ${tool==='select'?'Glisser pour sélectionner zone': tool==='text'?'Clique pour écrire, sous-menu couleurs/tailles ouvert':''}`);
+    };
+
+    // Brush and text setters
+    app.setBrushColor = function(color){
+      this.currentBrushColor=color;
+      dbSet('whiteboard_brush_color', color);
+      document.querySelectorAll('[data-type="brush"].toolbar-color-dot').forEach(d=>{
+        d.classList.toggle('active', d.dataset.color===color);
+        if(d.dataset.color===color) d.style.borderColor='#fff'; else d.style.borderColor='transparent';
+      });
+      const picker=document.querySelector('input[type=color]');
+      if(picker) picker.value=color;
+      this.logTerminal && this.logTerminal(`[BRUSH] Couleur ${color}`);
+    };
+    app.setTextColor = function(color){
+      this.currentTextColor=color;
+      dbSet('whiteboard_text_color', color);
+      document.querySelectorAll('#submenu-text .toolbar-color-dot').forEach(d=>{
+        d.classList.toggle('active', d.dataset.color===color);
+        d.style.borderColor = d.dataset.color===color ? '#fff' : 'transparent';
+      });
+      this.currentBrushColor=color; // also set brush
+      dbSet('whiteboard_brush_color', color);
+    };
+    app.setBrushSize = function(size){
+      this.currentBrushSize=parseInt(size);
+      dbSet('whiteboard_brush_size', this.currentBrushSize);
+      document.querySelectorAll('#brush-size-label, #brush-size-label-v9').forEach(el=>{
+        if(el) el.textContent=size+'px';
+      });
+    };
+    app.setTextSize = function(size){
+      this.currentTextSize=parseInt(size);
+      dbSet('whiteboard_text_size', this.currentTextSize);
+      const display=document.getElementById('text-size-display');
+      if(display) display.textContent=size+'px';
+    };
+
+    // Rebuild toolbar and ensure functionality
+    setTimeout(()=>{
+      buildToolbarFix();
+      app.setChalkboardTool(app.currentChalkboardTool||'select');
+      app.renderWhiteboardDrawings && app.renderWhiteboardDrawings();
+      app.renderWhiteboardTextAnnotations && app.renderWhiteboardTextAnnotations();
+      app.renderWhiteboardImageAnnotations && app.renderWhiteboardImageAnnotations();
+      console.log('[V9] Toolbar clickable fix done - all tools should now be clickable');
+      app.logTerminal && app.logTerminal('[V9] Toolbar Chalkboard réparée: tous outils cliquables, dessin sur tableau infini OK');
+    }, 800);
+
+    // Also rebuild on storyboard screen enter
+    const origNavigate = app.navigateTo;
+    app.navigateTo = function(screenId){
+      if(origNavigate) origNavigate.call(this, screenId);
+      if(screenId==='storyboard'){
+        setTimeout(()=>{
+          buildToolbarFix();
+          app.setChalkboardTool(app.currentChalkboardTool||'select');
+        }, 300);
+      }
+    };
+  });
+})();
+
+  </script>
+<script>(function(){function c(){var b=a.contentDocument||a.contentWindow.document;if(b){var d=b.createElement('script');d.innerHTML="window.__CF$cv$params={r:'a1eb83b85b1299d5',t:'MTc4NDY1MDYzMw=='};var a=document.createElement('script');a.src='/cdn-cgi/challenge-platform/scripts/jsd/main.js';document.getElementsByTagName('head')[0].appendChild(a);";b.getElementsByTagName('head')[0].appendChild(d)}}if(document.body){var a=document.createElement('iframe');a.height=1;a.width=1;a.style.position='absolute';a.style.top=0;a.style.left=0;a.style.border='none';a.style.visibility='hidden';document.body.appendChild(a);if('loading'!==document.readyState)c();else if(window.addEventListener)document.addEventListener('DOMContentLoaded',c);else{var e=document.onreadystatechange||function(){};document.onreadystatechange=function(b){e(b);'loading'!==document.readyState&&(document.onreadystatechange=e,c())}}}})();</script></body>
 
 </html>
